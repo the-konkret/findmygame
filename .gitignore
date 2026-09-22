@@ -1,0 +1,20 @@
+node_modules/
+dist/
+out/
+
+# Secrets: never upload API keys to GitHub
+.env
+.env.local
+
+# Local database (Step 5)
+*.sqlite
+*.db
+
+# Test output (Step 6)
+test-results/
+playwright-report/
+allure-results/
+allure-report/
+
+.DS_Store
+Thumbs.db
