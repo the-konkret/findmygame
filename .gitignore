@@ -1,6 +1,7 @@
 node_modules/
 dist/
 out/
+.wrangler/
 
 # Secrets: never upload API keys to GitHub
 .env

@@ -190,3 +190,15 @@ a:hover { color: var(--accent-hover); }
   .game-sidebar { order: -1; }
   .game-title { font-size: 30px; }
 }
+
+/* Phones */
+@media (max-width: 600px) {
+  .topbar, .footer { padding-left: 16px; padding-right: 16px; }
+  .content { padding: 16px 16px 32px; }
+  .hero-title { font-size: 26px; text-align: center; }
+  .search-hero { padding-top: 8vh; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .game-hero-shade { min-height: 240px; padding: 16px; }
+  .game-title { font-size: 26px; margin-top: 48px; }
+  .panel { padding: 16px; }
+}

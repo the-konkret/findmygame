@@ -1,8 +1,8 @@
-// Thin client for the RAWG Video Games Database API (https://rawg.io/apidocs).
-// The key is read from the .env file (VITE_RAWG_API_KEY) and never committed to GitHub.
+// Client for the RAWG Video Games Database API (https://rawg.io/apidocs).
+// The browser never sees the API key: it calls /api/rawg/..., and a small server function
+// (functions/api/rawg/[[path]].ts online, or the Vite proxy on your computer) adds the key.
 
-const BASE_URL = 'https://api.rawg.io/api';
-const API_KEY = import.meta.env.VITE_RAWG_API_KEY as string | undefined;
+const BASE_URL = '/api/rawg';
 
 export interface NamedRef {
   id: number;
@@ -39,17 +39,11 @@ interface Paged<T> {
   results: T[];
 }
 
-export class MissingApiKeyError extends Error {
-  constructor() {
-    super('RAWG API key is missing. Add VITE_RAWG_API_KEY to the .env file and restart the app.');
-  }
-}
-
 async function request<T>(path: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
-  if (!API_KEY) throw new MissingApiKeyError();
-  const query = new URLSearchParams({ key: API_KEY, ...params });
+  const query = new URLSearchParams(params);
   const res = await fetch(`${BASE_URL}${path}?${query}`, { signal });
-  if (!res.ok) throw new Error(`RAWG request failed (${res.status})`);
+  if (res.status === 401) throw new Error('RAWG rejected the API key. Check RAWG_API_KEY.');
+  if (!res.ok) throw new Error(`Game data request failed (${res.status})`);
   return (await res.json()) as T;
 }
 
