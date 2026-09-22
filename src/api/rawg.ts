@@ -66,3 +66,17 @@ export async function searchGames(term: string, signal?: AbortSignal): Promise<G
 export function getGame(id: string, signal?: AbortSignal): Promise<GameDetails> {
   return request<GameDetails>(`/games/${encodeURIComponent(id)}`, {}, signal);
 }
+
+const STEAM_STORE_ID = 1; // RAWG's ID for the Steam store
+
+/** The game's Steam app ID (e.g. "292030" for The Witcher 3), taken from its Steam store link, or null. */
+export async function getSteamAppId(id: string, signal?: AbortSignal): Promise<string | null> {
+  const data = await request<Paged<{ store_id: number; url: string }>>(
+    `/games/${encodeURIComponent(id)}/stores`,
+    {},
+    signal,
+  );
+  const steam = data.results.find((s) => s.store_id === STEAM_STORE_ID);
+  const match = steam?.url.match(/\/app\/(\d+)/);
+  return match ? match[1] : null;
+}

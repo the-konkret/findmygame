@@ -6,7 +6,7 @@ A desktop app (Electron + React + TypeScript) for searching video games, checkin
 
 - [x] Step 2: app window, dark/orange theme, game search (RAWG)
 - [x] Step 3: game summary page
-- [ ] Step 4: discounts across PC stores (CheapShark)
+- [x] Step 4: discounts across PC stores (CheapShark)
 - [ ] Step 5: local database with favourites and notes
 - [ ] Step 6: Playwright tests with an Allure report (steps and screenshots)
 - [ ] Step 7: GitHub Actions runs the tests on every push
@@ -40,12 +40,13 @@ Anyone cloning the repo copies `.env.example` to `.env` and adds their own key f
 ```
 electron/main.cjs      desktop window (Electron main process)
 electron/preload.cjs   bridge between desktop and UI (the database goes here in Step 5)
-src/api/rawg.ts        RAWG API client
+src/api/rawg.ts        RAWG API client (search, game details)
+src/api/cheapshark.ts  CheapShark API client (store prices and discounts)
 src/pages/             Search page and Game page
-src/components/        UI pieces (game card)
+src/components/        UI pieces (game card, deals panel)
 src/styles.css         theme colours and layout
 ```
 
 Elements that tests will use have `data-testid` attributes, so the Playwright tests in Step 6 won't break when the styling changes.
 
-Game data and images come from [RAWG](https://rawg.io).
+Game data and images come from [RAWG](https://rawg.io). Prices come from [CheapShark](https://www.cheapshark.com).

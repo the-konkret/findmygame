@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getGame, type GameDetails } from '../api/rawg';
+import DealsPanel from '../components/DealsPanel';
 
 export default function GamePage() {
   const { id = '' } = useParams();
@@ -63,28 +64,27 @@ export default function GamePage() {
           <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
         </article>
 
-        <aside className="panel game-facts" data-testid="game-facts">
-          <h2>Details</h2>
-          <dl>
-            {platforms && (<><dt>Platforms</dt><dd>{platforms}</dd></>)}
-            {game.genres?.length ? (<><dt>Genres</dt><dd>{names(game.genres)}</dd></>) : null}
-            {game.developers?.length ? (<><dt>Developer</dt><dd>{names(game.developers)}</dd></>) : null}
-            {game.publishers?.length ? (<><dt>Publisher</dt><dd>{names(game.publishers)}</dd></>) : null}
-            {stores && (<><dt>Available on</dt><dd>{stores}</dd></>)}
-            {game.esrb_rating && (<><dt>Age rating</dt><dd>{game.esrb_rating.name}</dd></>)}
-          </dl>
-          <div className="links">
-            {game.website && (
-              <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
-            )}
-            <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
-          </div>
-        </aside>
+        <div className="game-sidebar">
+          <DealsPanel gameId={id} gameName={game.name} />
 
-        <aside className="panel placeholder" data-testid="deals-placeholder">
-          <h2>Deals</h2>
-          <p>Store prices and discounts arrive in Step 4.</p>
-        </aside>
+          <aside className="panel game-facts" data-testid="game-facts">
+            <h2>Details</h2>
+            <dl>
+              {platforms && (<><dt>Platforms</dt><dd>{platforms}</dd></>)}
+              {game.genres?.length ? (<><dt>Genres</dt><dd>{names(game.genres)}</dd></>) : null}
+              {game.developers?.length ? (<><dt>Developer</dt><dd>{names(game.developers)}</dd></>) : null}
+              {game.publishers?.length ? (<><dt>Publisher</dt><dd>{names(game.publishers)}</dd></>) : null}
+              {stores && (<><dt>Available on</dt><dd>{stores}</dd></>)}
+              {game.esrb_rating && (<><dt>Age rating</dt><dd>{game.esrb_rating.name}</dd></>)}
+            </dl>
+            <div className="links">
+              {game.website && (
+                <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
+              )}
+              <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
+            </div>
+          </aside>
+        </div>
       </div>
     </section>
   );

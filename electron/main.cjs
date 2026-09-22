@@ -1,5 +1,5 @@
 // Electron "main process": creates the desktop window and loads the React UI.
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, session } = require('electron');
 const path = require('node:path');
 
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -34,7 +34,18 @@ function createWindow() {
   }
 }
 
+// CheapShark asks apps to identify themselves with their own User-Agent.
+const USER_AGENT = 'FindMyGame/0.1 (+https://github.com/the-konkret/findmygame)';
+
 app.whenReady().then(() => {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['https://www.cheapshark.com/*'] },
+    (details, callback) => {
+      details.requestHeaders['User-Agent'] = USER_AGENT;
+      callback({ requestHeaders: details.requestHeaders });
+    },
+  );
+
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
