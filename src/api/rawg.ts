@@ -1,6 +1,6 @@
 // Client for the RAWG Video Games Database API (https://rawg.io/apidocs).
 // The browser never sees the API key: it calls /api/rawg/..., and a small server function
-// (functions/api/rawg/[[path]].ts online, or the Vite proxy on your computer) adds the key.
+// (worker/index.ts on Cloudflare, or the Vite proxy on your computer) adds the key.
 
 const BASE_URL = '/api/rawg';
 

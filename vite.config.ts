@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       host: '127.0.0.1',
       port: 5173,
       strictPort: true,
-      // Local stand-in for functions/api/rawg/[[path]].ts: the browser calls /api/rawg/...,
+      // Local stand-in for worker/index.ts: the browser calls /api/rawg/...,
       // and this adds the key and forwards the request to RAWG.
       proxy: {
         '/api/rawg': {

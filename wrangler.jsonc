@@ -1,0 +1,16 @@
+// Cloudflare Worker settings. "name" must match the Worker's name in the Cloudflare dashboard.
+{
+  "name": "findmygame",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    // The built website (output of `npm run build`).
+    "directory": "./dist/",
+    // Unknown paths like /game/3328 get index.html, and React takes it from there.
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    // Only /api/... requests run the Worker code; everything else is served as plain files.
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
+}

@@ -1,14 +1,14 @@
 # FindMyGame
 
 A website for searching video games, checking discounts across PC stores, and keeping favourites and notes.
-Built with React + TypeScript + Vite and hosted for free on Cloudflare Pages.
+Built with React + TypeScript + Vite and hosted for free on Cloudflare Workers.
 
 ## Roadmap
 
 - [x] Game search (RAWG)
 - [x] Game summary page
 - [x] Discounts across PC stores (CheapShark)
-- [x] Website hosting on Cloudflare Pages, API key kept on the server
+- [x] Website hosting on Cloudflare Workers, API key kept on the server
 - [ ] User accounts with favourites and notes (Supabase)
 - [ ] Playwright tests with an Allure report (steps and screenshots)
 - [ ] GitHub Actions runs the tests on every push
@@ -36,21 +36,22 @@ npm run dev        # open http://127.0.0.1:5173 in your browser
 The RAWG key is a secret and never reaches the visitor's browser:
 
 - **On your computer** it lives in `.env` as `RAWG_API_KEY=...`. `.gitignore` keeps that file off GitHub, and `vite.config.ts` adds the key to requests.
-- **Online** it's stored in Cloudflare as a secret, and `functions/api/rawg/[[path]].ts` adds it to requests.
+- **Online** it's stored in Cloudflare as a secret, and `worker/index.ts` adds it to requests.
 
 To set up your own copy, copy `.env.example` to `.env` and add a free key from https://rawg.io/apidocs.
 
-## Deploying (Cloudflare Pages, free)
+## Deploying (Cloudflare Workers, free)
 
-One-time setup:
+The site runs as a Cloudflare Worker: `dist/` is served as static files, and `worker/index.ts` handles `/api/rawg/...`.
+Settings live in `wrangler.jsonc`.
 
-1. Sign up at https://dash.cloudflare.com (free plan).
-2. **Workers & Pages → Create → Pages → Connect to Git**, then choose the `findmygame` repository.
-3. Build settings: Framework preset **React (Vite)**, build command `npm run build`, output directory `dist`.
-4. **Environment variables**: add `RAWG_API_KEY` with your key, as type **Secret**.
-5. **Save and Deploy**. The site is published at `https://findmygame-xxx.pages.dev`.
+One-time setup in the Cloudflare dashboard (**Workers & Pages** → the `findmygame` Worker):
 
-After that, every `git push` to `main` redeploys the site automatically.
+1. **Settings → Build**: build command `npm run build`, deploy command `npx wrangler deploy`.
+2. **Settings → Variables and Secrets**: add `RAWG_API_KEY` with type **Secret**. Secrets are kept across deploys.
+3. The Worker name must match `"name"` in `wrangler.jsonc` (`findmygame`).
+
+After that, every `git push` to `main` rebuilds and redeploys the site. Its address is `https://findmygame.<your-subdomain>.workers.dev`.
 
 ## Project layout
 
@@ -60,8 +61,9 @@ src/components/              UI pieces (game card, deals panel)
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
 src/styles.css               theme colours and layout
-functions/api/rawg/[[path]].ts   server function that adds the secret RAWG key (Cloudflare)
-vite.config.ts               local dev server (does the same job as the function, on your computer)
+worker/index.ts              server code on Cloudflare: adds the secret RAWG key to /api/rawg requests
+wrangler.jsonc               Cloudflare Worker settings
+vite.config.ts               local dev server (does the Worker's job on your computer)
 ```
 
 Elements that tests will use have `data-testid` attributes, so the Playwright tests won't break when the styling changes.
