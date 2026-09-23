@@ -83,6 +83,34 @@ a:hover { color: var(--accent-hover); }
 .search-box input::placeholder { color: #6a6a70; }
 .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.25); }
 
+/* The big search box stays centred; "Surprise me" hangs off its right-hand side. */
+.search-row { position: relative; width: 100%; max-width: 640px; }
+.search-row .search-box { max-width: none; }
+.surprise { position: absolute; left: calc(100% + 16px); top: 0; height: 100%; display: flex; align-items: center; }
+.surprise .error-text { position: absolute; top: calc(100% + 6px); left: 0; width: 220px; }
+.btn-surprise {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+  height: 100%; padding: 0 22px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--accent); border-radius: 999px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.surprise-die { color: var(--accent); font-size: 22px; line-height: 1; transition: transform 0.3s; }
+.btn-surprise:disabled { opacity: 0.7; cursor: wait; }
+.btn-surprise:disabled .surprise-die { animation: roll 0.6s linear infinite; }
+@keyframes roll { to { transform: rotate(360deg); } }
+@media (hover: hover) {
+  .btn-surprise:hover:not(:disabled) { background: rgba(232, 101, 10, 0.14); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.18); }
+  .btn-surprise:hover:not(:disabled) .surprise-die { transform: rotate(90deg); }
+}
+/* Not enough room beside the box: put the button underneath, centred. */
+@media (max-width: 1000px) {
+  .surprise { position: static; height: auto; justify-content: center; margin-top: 14px; flex-direction: column; gap: 6px; }
+  .surprise .error-text { position: static; width: auto; text-align: center; }
+  .btn-surprise { height: auto; padding: 10px 22px; }
+}
+
 .hero-hint { margin: 12px 0 0; color: var(--text-dim); font-size: 13px; text-align: center; }
 
 /* Suggestions dropdown under the search box */
@@ -101,10 +129,10 @@ a:hover { color: var(--accent-hover); }
 .suggestion.active { background: rgba(232, 101, 10, 0.16); box-shadow: inset 3px 0 0 var(--accent); }
 .suggestion.active .suggestion-name { color: #fff; }
 .suggestion-thumb {
-  width: 64px; height: 36px; flex-shrink: 0; border-radius: 4px;
-  object-fit: cover; object-position: center 25%; background: var(--surface-2);
+  position: relative; display: block; overflow: hidden;
+  width: 64px; height: 36px; flex-shrink: 0; border-radius: 4px; background: var(--surface-2);
 }
-.suggestion-thumb.empty { display: inline-block; }
+.suggestion-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; display: block; }
 .suggestion-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .suggestion-year { color: var(--text-dim); font-size: 13px; }
 .suggestion-all {
@@ -140,6 +168,32 @@ a:hover { color: var(--accent-hover); }
 .card:active { border-color: var(--accent); }
 .card-image { position: relative; aspect-ratio: 16 / 9; background: var(--surface-2); }
 .card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------- Skeletons: shimmering placeholders while pictures and data load ---------- */
+.skeleton {
+  background: linear-gradient(100deg, var(--surface-2) 30%, #29292e 50%, var(--surface-2) 70%);
+  background-size: 250% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+/* Covers the picture's spot until it has loaded (the parent is position: relative). */
+.img-skeleton { position: absolute; inset: 0; display: grid; place-items: center; }
+.img-failed { background: var(--surface-2); color: var(--text-dim); font-size: 13px; }
+/* Pictures fade in once they've arrived instead of popping in line by line. */
+img.fade-in { opacity: 0; transition: opacity 0.35s ease; }
+img.fade-in.loaded { opacity: 1; }
+/* Grey bars standing in for text */
+.sk-line {
+  display: block; height: 14px; width: 100%; margin-bottom: 10px; border-radius: 6px;
+  background: linear-gradient(100deg, var(--surface-2) 30%, #29292e 50%, var(--surface-2) 70%);
+  background-size: 250% 100%; animation: shimmer 1.3s ease-in-out infinite;
+}
+.sk-panel .sk-line:first-child { height: 12px; margin-bottom: 16px; }
+.card-skeleton { pointer-events: none; }
+.card-skeleton .card-body { padding-top: 16px; }
+.skeleton-shade { background: none; }
+.skeleton-shade .sk-line { background: rgba(255, 255, 255, 0.06); animation: none; }
 .card-image-empty { display: grid; place-items: center; height: 100%; color: var(--text-dim); font-size: 13px; }
 .badge-score {
   position: absolute; top: 8px; right: 8px;
@@ -162,12 +216,23 @@ a:hover { color: var(--accent-hover); }
 
 /* ---------- Game page ---------- */
 .game-hero {
+  position: relative;
   border-radius: var(--radius); overflow: hidden;
   /* Crop towards the upper part of the cover art, where faces and characters usually are. */
   background: var(--surface-2) center 25% / cover no-repeat;
   border: 1px solid var(--border);
 }
+/* (.game-hero sets its own background, so the skeleton needs a more specific rule to show through) */
+.game-hero.skeleton {
+  background: linear-gradient(100deg, var(--surface-2) 30%, #29292e 50%, var(--surface-2) 70%);
+  background-size: 250% 100%;
+}
+.game-hero-img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 25%;
+}
 .game-hero-shade {
+  position: relative; /* above the picture */
   /* Taller on wide screens so more of the artwork shows. */
   min-height: clamp(320px, 30vw, 440px); padding: 20px 28px 26px;
   display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;

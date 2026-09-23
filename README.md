@@ -64,8 +64,8 @@ What's covered:
 
 | File | Tests |
 |---|---|
-| `tests/search.spec.ts` | suggestions dropdown (mouse and keyboard), full results and order, "no games found", results kept after going back, logo returns home |
-| `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages |
+| `tests/search.spec.ts` | suggestions dropdown (mouse and keyboard), full results and order, "no games found", results kept after going back, logo returns home, "Surprise me" |
+| `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages, skeletons while pictures load |
 | `tests/accounts.spec.ts` | sign up, log out, log in, wrong password, protected favourites page |
 | `tests/favourites-and-notes.spec.ts` | add, list and remove a favourite (no flicker, ★ on search results); save, reload and delete a note |
 | `tests/mobile.spec.ts` | on a phone-sized screen: nothing wider than the screen, results as a list, game page section order, top bar fits, no zoom when tapping text boxes |

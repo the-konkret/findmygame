@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
+import SurpriseButton from '../components/SurpriseButton';
 import { useFavouriteIds } from '../hooks/useFavouriteIds';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
@@ -63,11 +64,27 @@ export default function SearchPage() {
         {!query && <h1 className="hero-title">Find your next game</h1>}
         {/* Focus the box only on a fresh home page. Coming back to results, it stays inactive so the
             suggestions don't pop open by themselves. */}
-        <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!query} />
+        <div className="search-row">
+          <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!query} />
+          {/* Only on the fresh home page, next to the big search box. */}
+          {!query && <SurpriseButton />}
+        </div>
         {!query && <p className="hero-hint">Start typing to see suggestions, or press Enter to see all results.</p>}
       </div>
 
-      {status === 'loading' && <p className="status" data-testid="search-loading">Searching…</p>}
+      {status === 'loading' && (
+        <div className="grid" data-testid="search-loading" aria-busy="true" aria-label="Searching">
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={i} className="card card-skeleton" aria-hidden>
+              <div className="card-image skeleton" />
+              <div className="card-body">
+                <span className="sk-line" style={{ width: '80%' }} />
+                <span className="sk-line" style={{ width: '30%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {status === 'error' && <p className="status error" data-testid="search-error">{error}</p>}
       {status === 'done' && results.length === 0 && (
         <p className="status" data-testid="search-empty">No games found for “{query}”.</p>

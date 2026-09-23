@@ -108,6 +108,23 @@ export function rankByTitleMatch<T extends { name: string; added?: number }>(gam
     .map((x) => x.game);
 }
 
+/**
+ * A random game for "Surprise me": a random pick from the ~2,000 most popular games on RAWG
+ * (50 pages of 40), so the surprise is something real rather than an obscure test upload.
+ */
+export async function getRandomGame(signal?: AbortSignal): Promise<GameSummary> {
+  const page = 1 + Math.floor(Math.random() * 50);
+  const data = await request<Paged<GameSummary>>(
+    '/games',
+    { ordering: '-added', page_size: '40', page: String(page) },
+    signal,
+  );
+  const withPicture = data.results.filter((g) => g.background_image);
+  const pool = withPicture.length > 0 ? withPicture : data.results;
+  if (pool.length === 0) throw new Error("Couldn't pick a game. Please try again.");
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 export function getGame(id: string, signal?: AbortSignal): Promise<GameDetails> {
   return request<GameDetails>(`/games/${encodeURIComponent(id)}`, {}, signal);
 }

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { GameSummary } from '../api/rawg';
+import LoadingImage from './LoadingImage';
 
 export default function GameCard({ game, isFavourite = false }: { game: GameSummary; isFavourite?: boolean }) {
   const year = game.released ? game.released.slice(0, 4) : 'TBA';
@@ -9,7 +10,7 @@ export default function GameCard({ game, isFavourite = false }: { game: GameSumm
     <Link to={`/game/${game.id}`} className="card" data-testid="game-card">
       <div className="card-image">
         {game.background_image ? (
-          <img src={game.background_image} alt={game.name} loading="lazy" />
+          <LoadingImage src={game.background_image} alt={game.name} />
         ) : (
           <div className="card-image-empty">No image</div>
         )}

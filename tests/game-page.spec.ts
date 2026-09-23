@@ -66,4 +66,34 @@ test.describe('Game page', () => {
       await expect(page.getByText('Page not found')).toBeVisible();
     });
   });
+
+  test('shows skeleton placeholders while pictures load', async ({ page }) => {
+    // Hold every RAWG picture back for 2 seconds, so the loading state can be seen.
+    await page.route('https://media.rawg.io/**', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2_000));
+      await route.continue();
+    });
+
+    await step(page, 'Search for "portal" with slow pictures and see skeletons on the cards', async () => {
+      await page.goto('/?q=portal');
+      await expect(page.getByTestId('game-card').first()).toBeVisible();
+      await expect(page.getByTestId('game-card').first().getByTestId('image-skeleton')).toBeVisible();
+    });
+
+    await step(page, 'Wait for the pictures and check the skeletons are replaced', async () => {
+      const firstCard = page.getByTestId('game-card').first();
+      await expect(firstCard.getByTestId('image-skeleton')).toHaveCount(0, { timeout: 15_000 });
+      await expect(firstCard.locator('img.loaded')).toBeVisible();
+    });
+
+    await step(page, 'Open the game page and see the big picture load the same way', async () => {
+      // Hades: its picture wasn't on the "portal" results, so it isn't in the browser's memory yet
+      await page.goto('/game/274755');
+      await expect(page.getByTestId('game-title')).toHaveText('Hades');
+      const hero = page.locator('.game-hero');
+      await expect(hero.getByTestId('image-skeleton')).toBeVisible();
+      await expect(hero.getByTestId('image-skeleton')).toHaveCount(0, { timeout: 15_000 });
+      await expect(hero.locator('img.loaded')).toBeVisible();
+    });
+  });
 });

@@ -27,6 +27,13 @@ test.describe('Phone layout', () => {
       await expectNoZoomOnTap(page, 'search-input');
     });
 
+    await step(page, 'Check "Surprise me" sits under the search box on a phone', async () => {
+      const button = (await page.getByTestId('surprise-button').boundingBox())!;
+      const search = (await page.getByTestId('search-input').boundingBox())!;
+      expect(button.y).toBeGreaterThan(search.y + search.height - 1);
+      expect(button.x + button.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    });
+
     await step(page, 'Type "witcher" and check the suggestions fit on screen', async () => {
       await page.getByTestId('search-input').fill('witcher');
       const list = page.getByTestId('search-suggestions');

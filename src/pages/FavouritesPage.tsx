@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { listFavourites, type FavouriteGame } from '../api/userData';
+import LoadingImage from '../components/LoadingImage';
 
 export default function FavouritesPage() {
   const { user, loading } = useAuth();
@@ -34,7 +35,7 @@ export default function FavouritesPage() {
             <Link key={g.game_id} to={`/game/${g.game_id}`} className="card" data-testid="favourite-card">
               <div className="card-image">
                 {g.game_image ? (
-                  <img src={g.game_image} alt={g.game_name} loading="lazy" />
+                  <LoadingImage src={g.game_image} alt={g.game_name} />
                 ) : (
                   <div className="card-image-empty">No image</div>
                 )}

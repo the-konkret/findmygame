@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from '
 import { useNavigate } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
+import LoadingImage from './LoadingImage';
 
 const MAX_SUGGESTIONS = 6;
 
@@ -177,18 +178,21 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
   );
 }
 
-/** Small cover picture. Asks RAWG for a resized copy (much smaller download), falling back to the original. */
+/** Small cover picture with a skeleton. Asks RAWG for a resized copy (much smaller download), falling back to the original. */
 function Thumb({ src }: { src: string | null }) {
   const [failed, setFailed] = useState(false);
-  if (!src) return <span className="suggestion-thumb empty" />;
+  if (!src) return <span className="suggestion-thumb" />;
   const small = src.replace('/media/games/', '/media/resize/200/-/games/');
+  const useSmall = !failed && small !== src;
   return (
-    <img
-      className="suggestion-thumb"
-      src={failed || small === src ? src : small}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+    <span className="suggestion-thumb">
+      <LoadingImage
+        src={useSmall ? small : src}
+        alt=""
+        loading="eager"
+        fallback=""
+        onError={useSmall ? () => setFailed(true) : undefined}
+      />
+    </span>
   );
 }

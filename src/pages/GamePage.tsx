@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthProvider';
 import DealsPanel from '../components/DealsPanel';
 import FavouriteButton from '../components/FavouriteButton';
 import NotesPanel from '../components/NotesPanel';
+import LoadingImage from '../components/LoadingImage';
 
 export default function GamePage() {
   const { id = '' } = useParams();
@@ -40,7 +41,7 @@ export default function GamePage() {
     );
   }
 
-  if (!game) return <p className="status" data-testid="game-loading">Loading game…</p>;
+  if (!game) return <GamePageSkeleton />;
 
   const names = (list?: { name: string }[]) => (list ?? []).map((x) => x.name).join(', ');
   const platforms = (game.platforms ?? []).map((p) => p.platform.name).join(', ');
@@ -48,10 +49,10 @@ export default function GamePage() {
 
   return (
     <section className="game-page" data-testid="game-page">
-      <div
-        className="game-hero"
-        style={game.background_image ? { backgroundImage: `url(${game.background_image})` } : undefined}
-      >
+      <div className="game-hero">
+        {game.background_image && (
+          <LoadingImage key={game.id} src={game.background_image} alt="" loading="eager" fallback="" className="game-hero-img" />
+        )}
         <div className="game-hero-shade">
           <button className="btn-ghost" onClick={() => navigate(-1)} data-testid="back-button">
             ← Back
@@ -99,6 +100,40 @@ export default function GamePage() {
               <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
             </div>
           </aside>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Shown while the game details load: grey shapes where the picture, title and panels will be. */
+function GamePageSkeleton() {
+  return (
+    <section className="game-page" data-testid="game-loading" aria-busy="true" aria-label="Loading game">
+      <div className="game-hero skeleton">
+        <div className="game-hero-shade skeleton-shade">
+          <span className="sk-line" style={{ width: 70, height: 30 }} />
+          <div>
+            <span className="sk-line" style={{ width: 'min(420px, 70%)', height: 38, marginBottom: 14 }} />
+            <span className="sk-line" style={{ width: 'min(300px, 55%)', height: 24 }} />
+          </div>
+        </div>
+      </div>
+      <div className="game-body">
+        <div className="game-main">
+          <div className="panel sk-panel">
+            <span className="sk-line" style={{ width: 90 }} />
+            <span className="sk-line" />
+            <span className="sk-line" />
+            <span className="sk-line" style={{ width: '60%' }} />
+          </div>
+        </div>
+        <div className="game-sidebar">
+          <div className="panel sk-panel">
+            <span className="sk-line" style={{ width: 70 }} />
+            <span className="sk-line" style={{ width: 120, height: 30 }} />
+            <span className="sk-line" />
+          </div>
         </div>
       </div>
     </section>

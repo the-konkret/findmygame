@@ -192,4 +192,30 @@ test.describe('Search', () => {
       await expect(page.getByTestId('header-search')).toHaveCount(0);
     });
   });
+
+  test('"Surprise me" opens a random game', async ({ page }) => {
+    await step(page, 'Open the home page and find the "Surprise me" button next to the search box', async () => {
+      await page.goto('/');
+      const button = page.getByTestId('surprise-button');
+      await expect(button).toHaveText(/Surprise me/);
+      const buttonBox = (await button.boundingBox())!;
+      const searchBox = (await page.getByTestId('search-input').boundingBox())!;
+      expect(buttonBox.x).toBeGreaterThan(searchBox.x + searchBox.width); // to the right of the search box
+    });
+
+    await step(page, 'Click "Surprise me"', async () => {
+      await page.getByTestId('surprise-button').click();
+    });
+
+    await step(page, 'Check a game page opened', async () => {
+      await expect(page).toHaveURL(/\/game\/\d+$/);
+      await expect(page.getByTestId('game-title')).not.toBeEmpty();
+    });
+
+    await step(page, 'Go back and check the button is only on the fresh home page, not on results', async () => {
+      await page.goto('/?q=portal');
+      await expect(page.getByTestId('search-results')).toBeVisible();
+      await expect(page.getByTestId('surprise-button')).toHaveCount(0);
+    });
+  });
 });
