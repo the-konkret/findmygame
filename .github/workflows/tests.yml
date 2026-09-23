@@ -1,0 +1,125 @@
+# Runs the Playwright tests on GitHub's computers and publishes the Allure report to GitHub Pages.
+#
+# When it runs:
+#   - every push to main and every pull request → tests the code in that commit (on a local dev server)
+#   - Monday and Thursday mornings               → tests the LIVE website (also keeps Supabase from pausing)
+#   - by hand: Actions tab → "Tests" → "Run workflow" (choose local code or the live site)
+#
+# The latest report is always at https://the-konkret.github.io/findmygame/
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1,4' # 06:00 UTC on Mondays and Thursdays
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to test
+        type: choice
+        options: [local, live]
+        default: live
+
+permissions:
+  contents: read
+
+# If you push twice quickly, stop the older run.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LIVE_URL: https://findmygame.mktestbb.workers.dev
+
+jobs:
+  test:
+    name: Playwright tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Choose what to test
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.target }}" = "live" ]; then
+            echo "BASE_URL=$LIVE_URL" >> "$GITHUB_ENV"
+            echo "label=live website ($LIVE_URL)" >> "$GITHUB_OUTPUT"
+          else
+            echo "label=this commit (local dev server)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run the tests
+        run: npx playwright test
+        env:
+          # Only used when testing on the local dev server (the Vite proxy adds it to RAWG requests).
+          RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
+
+      - name: Build the Allure report
+        if: ${{ !cancelled() }}
+        run: npx allure generate allure-results
+
+      - name: Keep the reports as downloadable files
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_number }}
+          path: |
+            allure-report/
+            playwright-report/
+          retention-days: 14
+
+      - name: Prepare the report for GitHub Pages
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report/
+
+      - name: Write a summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### Tested: ${{ steps.target.outputs.label }}"
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
+              echo ""
+              echo "Allure report (steps and screenshots): https://the-konkret.github.io/findmygame/"
+            fi
+            echo ""
+            echo "Both reports can also be downloaded under **Artifacts** at the bottom of this page."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-report:
+    name: Publish report to GitHub Pages
+    needs: test
+    # Publish even when tests fail (that's when the report matters most), but not for pull requests.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Publish
+        id: deploy
+        uses: actions/deploy-pages@v4

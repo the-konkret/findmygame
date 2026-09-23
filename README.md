@@ -11,7 +11,7 @@ Built with React + TypeScript + Vite and hosted for free on Cloudflare Workers.
 - [x] Website hosting on Cloudflare Workers, API key kept on the server
 - [x] User accounts with favourites and notes (Supabase)
 - [x] Playwright tests with an Allure report (steps and screenshots)
-- [ ] GitHub Actions runs the tests on every push
+- [x] GitHub Actions runs the tests on every push and publishes the report
 - [ ] Later: installable on phones (PWA)
 
 ## Run it on your computer (Windows)
@@ -74,6 +74,24 @@ Each run signs up new throwaway accounts (`fmg-test-...@mailinator.com`), so run
 You can delete old test users in Supabase under **Authentication → Users**.
 The helper `step()` in `tests/support/step.ts` adds the screenshot to each step.
 
+### Tests on GitHub (GitHub Actions)
+
+`.github/workflows/tests.yml` runs the tests on GitHub's computers (free for public repositories):
+
+| When | What is tested |
+|---|---|
+| Every push to `main`, every pull request | the code in that commit, on a temporary dev server |
+| Mondays and Thursdays, 06:00 UTC | the live website (this also keeps the free Supabase project from pausing) |
+| By hand: **Actions → Tests → Run workflow** | your choice: `live` or `local` |
+
+The latest Allure report is published at **https://the-konkret.github.io/findmygame/**.
+Both reports can also be downloaded from each run's page under **Artifacts** (kept for 14 days).
+
+One-time setup on GitHub:
+
+1. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+2. **Settings → Secrets and variables → Actions → New repository secret**: name `RAWG_API_KEY`, value your RAWG key.
+
 ## Accounts, favourites and notes (Supabase, free)
 
 Logins, favourites and notes are stored in Supabase (a free hosted Postgres database with sign-in built in).
@@ -87,7 +105,7 @@ One-time setup:
 3. **Authentication → URL Configuration**: set **Site URL** to the live address, and add `http://127.0.0.1:5173/**` under **Redirect URLs**.
 4. Put the project URL and publishable key in `src/lib/supabase.ts`. Both are public by design; the database rules protect the data.
 
-Free-plan note: Supabase pauses a project after 7 days without activity. The scheduled test run (coming later) will keep it awake.
+Free-plan note: Supabase pauses a project after 7 days without activity. The twice-weekly scheduled test run keeps it awake.
 
 ## Deploying (Cloudflare Workers, free)
 
@@ -115,6 +133,7 @@ src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
 src/styles.css               theme colours and layout
 tests/                       Playwright end-to-end tests
+.github/workflows/tests.yml  runs the tests on GitHub and publishes the report
 playwright.config.ts         test settings (which site, browsers, reports)
 allurerc.mjs                 Allure report settings
 worker/index.ts              server code on Cloudflare: adds the secret RAWG key to /api/rawg requests
