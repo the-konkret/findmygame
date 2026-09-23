@@ -1,54 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
-import { useDebounce } from '../hooks/useDebounce';
 import GameCard from '../components/GameCard';
+import SearchBox from '../components/SearchBox';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
 export default function SearchPage() {
-  // The query lives in the URL (?q=...) so going "Back" from a game restores the results.
+  // The submitted search lives in the address (?q=...), so Back/Forward and shared links work.
+  // Typing only shows suggestions; Enter (or "Show all results") fills the address and the grid.
   const [params, setParams] = useSearchParams();
-  const urlQuery = params.get('q') ?? '';
-  const [input, setInput] = useState(urlQuery);
+  const query = (params.get('q') ?? '').trim();
+  const [input, setInput] = useState(query);
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounced = useDebounce(input.trim(), 400);
-  // Wait for a pause in typing before searching, but react to an emptied box straight away.
-  const term = input.trim() === '' ? '' : debounced;
 
   const [results, setResults] = useState<GameSummary[]>([]);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
 
-  // Keep the URL in sync with the search term.
+  // The address changed (a search was submitted, the logo was clicked, Back/Forward): follow it.
   useEffect(() => {
-    if (term !== urlQuery) setParams(term ? { q: term } : {}, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [term]);
-
-  // The address changed from outside (e.g. clicking the logo, or browser Back/Forward): follow it.
-  useEffect(() => {
-    if (urlQuery !== term) {
-      setInput(urlQuery);
-      if (!urlQuery) {
-        window.scrollTo({ top: 0 });
-        inputRef.current?.focus();
-      }
+    setInput(query);
+    if (!query) {
+      window.scrollTo({ top: 0 });
+      inputRef.current?.focus();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlQuery]);
+  }, [query]);
 
-  // Fetch results whenever the (debounced) term changes.
+  // Load the full results for the submitted search.
   useEffect(() => {
-    if (term.length < 2) {
+    if (!query) {
       setResults([]);
       setStatus('idle');
       return;
     }
-
     const controller = new AbortController();
     setStatus('loading');
-    searchGames(term, controller.signal)
+    searchGames(query, controller.signal)
       .then((games) => {
         setResults(games);
         setStatus('done');
@@ -59,31 +47,28 @@ export default function SearchPage() {
         setStatus('error');
       });
     return () => controller.abort();
-  }, [term]);
+  }, [query]);
+
+  function submit(term: string) {
+    if (term === query) return;
+    setParams(term ? { q: term } : {});
+    inputRef.current?.blur();
+  }
 
   return (
     <section className="search-page">
-      <div className={`search-hero ${term ? 'compact' : ''}`}>
-        {!term && <h1 className="hero-title">Find your next game</h1>}
-        <div className="search-box">
-          <span className="search-icon" aria-hidden>⌕</span>
-          <input
-            type="search"
-            ref={inputRef}
-            autoFocus
-            placeholder="Search games, e.g. The Witcher 3"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            aria-label="Search games"
-            data-testid="search-input"
-          />
-        </div>
+      <div className={`search-hero ${query ? 'compact' : ''}`}>
+        {!query && <h1 className="hero-title">Find your next game</h1>}
+        {/* Focus the box only on a fresh home page. Coming back to results, it stays inactive so the
+            suggestions don't pop open by themselves. */}
+        <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!query} />
+        {!query && <p className="hero-hint">Start typing to see suggestions, or press Enter to see all results.</p>}
       </div>
 
       {status === 'loading' && <p className="status" data-testid="search-loading">Searching…</p>}
       {status === 'error' && <p className="status error" data-testid="search-error">{error}</p>}
       {status === 'done' && results.length === 0 && (
-        <p className="status" data-testid="search-empty">No games found for “{term}”.</p>
+        <p className="status" data-testid="search-empty">No games found for “{query}”.</p>
       )}
 
       {results.length > 0 && (

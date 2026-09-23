@@ -30,16 +30,45 @@ export async function listFavourites(): Promise<FavouriteGame[]> {
   return data ?? [];
 }
 
-export async function isFavourite(gameId: number): Promise<boolean> {
-  const { count, error } = await supabase
-    .from('favourites')
-    .select('game_id', { count: 'exact', head: true })
-    .eq('game_id', gameId);
-  check(error);
-  return (count ?? 0) > 0;
+// ---- Favourite IDs, kept in memory ----
+// The IDs of the user's favourites are loaded once (one small request) and remembered, so every game page
+// after the first knows straight away whether the game is a favourite, with no waiting and no flicker.
+let favCache: { userId: string; ids: Promise<Set<number>>; known: Set<number> | null } | null = null;
+
+function favouriteIds(userId: string): Promise<Set<number>> {
+  if (favCache?.userId !== userId) {
+    const entry: NonNullable<typeof favCache> = { userId, ids: Promise.resolve(new Set()), known: null };
+    entry.ids = (async () => {
+      const { data, error } = await supabase.from('favourites').select('game_id');
+      check(error);
+      const ids = new Set((data ?? []).map((row) => row.game_id as number));
+      entry.known = ids;
+      return ids;
+    })();
+    entry.ids.catch(() => {
+      if (favCache === entry) favCache = null; // try again next time
+    });
+    favCache = entry;
+  }
+  return favCache.ids;
 }
 
-export async function addFavourite(game: GameRef): Promise<void> {
+/** Start loading the favourite IDs early (e.g. while the game details are still loading). */
+export function prefetchFavourites(userId: string): void {
+  favouriteIds(userId).catch(() => {});
+}
+
+/** The answer if it's already known, without waiting; undefined if not loaded yet. */
+export function peekFavourite(userId: string, gameId: number): boolean | undefined {
+  if (favCache?.userId !== userId || !favCache.known) return undefined;
+  return favCache.known.has(gameId);
+}
+
+export async function isFavourite(userId: string, gameId: number): Promise<boolean> {
+  return (await favouriteIds(userId)).has(gameId);
+}
+
+export async function addFavourite(userId: string, game: GameRef): Promise<void> {
   const { error } = await supabase.from('favourites').upsert(
     {
       game_id: game.id,
@@ -50,11 +79,13 @@ export async function addFavourite(game: GameRef): Promise<void> {
     { onConflict: 'user_id,game_id', ignoreDuplicates: true },
   );
   check(error);
+  if (favCache?.userId === userId) favCache.known?.add(game.id);
 }
 
-export async function removeFavourite(gameId: number): Promise<void> {
+export async function removeFavourite(userId: string, gameId: number): Promise<void> {
   const { error } = await supabase.from('favourites').delete().eq('game_id', gameId);
   check(error);
+  if (favCache?.userId === userId) favCache.known?.delete(gameId);
 }
 
 export async function getNote(gameId: number): Promise<{ body: string; updated_at: string } | null> {

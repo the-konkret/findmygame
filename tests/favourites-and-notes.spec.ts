@@ -16,6 +16,22 @@ test.describe('Favourites', () => {
       await expect(page.getByTestId('favourite-button')).toHaveText('★ In favourites');
     });
 
+    await step(page, 'Reload and check the button shows "In favourites" straight away, with no flicker', async () => {
+      // Record every label the favourite button shows while the page loads.
+      await page.addInitScript(() => {
+        const seen: string[] = [];
+        (window as unknown as { favLabels: string[] }).favLabels = seen;
+        new MutationObserver(() => {
+          const label = document.querySelector('[data-testid="favourite-button"]')?.textContent;
+          if (label && seen[seen.length - 1] !== label) seen.push(label);
+        }).observe(document, { subtree: true, childList: true, characterData: true });
+      });
+      await page.reload();
+      await expect(page.getByTestId('favourite-button')).toHaveText('★ In favourites');
+      const labels = await page.evaluate(() => (window as unknown as { favLabels: string[] }).favLabels);
+      expect(labels).toEqual(['★ In favourites']);
+    });
+
     await step(page, 'Open "My favourites" and find the game', async () => {
       await page.getByTestId('nav-favourites').click();
       await expect(page.getByRole('heading', { name: 'My favourites' })).toBeVisible();

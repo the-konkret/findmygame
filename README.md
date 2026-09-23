@@ -64,7 +64,7 @@ What's covered:
 
 | File | Tests |
 |---|---|
-| `tests/search.spec.ts` | search results and order, "no games found", results kept after going back |
+| `tests/search.spec.ts` | suggestions dropdown (mouse and keyboard), full results and order, "no games found", results kept after going back, logo returns home |
 | `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages |
 | `tests/accounts.spec.ts` | sign up, log out, log in, wrong password, protected favourites page |
 | `tests/favourites-and-notes.spec.ts` | add, list and remove a favourite; save, reload and delete a note |
@@ -124,7 +124,7 @@ After that, every `git push` to `main` rebuilds and redeploys the site. Its addr
 
 ```
 src/pages/                   Search, Game, Login and Favourites pages
-src/components/              UI pieces (game card, deals, favourite button, notes)
+src/components/              UI pieces (search box with suggestions, game card, deals, favourite button, notes)
 src/auth/AuthProvider.tsx    who is logged in, log in / sign up / log out
 src/lib/supabase.ts          connection to Supabase
 src/api/userData.ts          favourites and notes (Supabase)

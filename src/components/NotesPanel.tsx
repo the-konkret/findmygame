@@ -9,7 +9,7 @@ const savedAt = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyl
 type Status = 'loading' | 'idle' | 'saving' | 'saved' | 'error';
 
 export default function NotesPanel({ game }: { game: GameRef }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const [text, setText] = useState('');
   const [savedText, setSavedText] = useState('');
@@ -38,6 +38,16 @@ export default function NotesPanel({ game }: { game: GameRef }) {
       active = false;
     };
   }, [user, game.id]);
+
+  // Don't flash "Log in" while the saved login is still being read.
+  if (loading) {
+    return (
+      <section className="panel notes" data-testid="notes-panel">
+        <h2>My notes</h2>
+        <p className="muted">&nbsp;</p>
+      </section>
+    );
+  }
 
   if (!user) {
     return (

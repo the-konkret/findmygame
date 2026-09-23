@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getGame, type GameDetails } from '../api/rawg';
+import { prefetchFavourites } from '../api/userData';
+import { useAuth } from '../auth/AuthProvider';
 import DealsPanel from '../components/DealsPanel';
 import FavouriteButton from '../components/FavouriteButton';
 import NotesPanel from '../components/NotesPanel';
@@ -10,6 +12,12 @@ export default function GamePage() {
   const navigate = useNavigate();
   const [game, setGame] = useState<GameDetails | null>(null);
   const [error, setError] = useState('');
+  const { user } = useAuth();
+
+  // Ask for the favourites at the same time as the game details, so the answer is ready when the page shows.
+  useEffect(() => {
+    if (user) prefetchFavourites(user.id);
+  }, [user]);
 
   useEffect(() => {
     const controller = new AbortController();

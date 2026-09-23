@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import SearchPage from './pages/SearchPage';
 import GamePage from './pages/GamePage';
 import LoginPage from './pages/LoginPage';
 import FavouritesPage from './pages/FavouritesPage';
 import { useAuth } from './auth/AuthProvider';
+import SearchBox from './components/SearchBox';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -19,6 +20,9 @@ export default function App() {
         <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
           <span className="brand-mark">◉</span> FindMy<span className="brand-accent">Game</span>
         </Link>
+        {/* The home page has its own big search box; every other page gets one in the top bar.
+            key={pathname} empties it whenever you move to another page. */}
+        {pathname !== '/' && <HeaderSearch key={pathname} />}
         <UserMenu />
       </header>
 
@@ -42,6 +46,27 @@ export default function App() {
           CheapShark
         </a>
       </footer>
+    </div>
+  );
+}
+
+function HeaderSearch() {
+  const navigate = useNavigate();
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="topbar-search" data-testid="header-search">
+      <SearchBox
+        compact
+        value={value}
+        onChange={setValue}
+        // Enter / "Show all results" opens the home page with the full results.
+        onSubmit={(term) => {
+          if (term) navigate(`/?q=${encodeURIComponent(term)}`);
+        }}
+        inputRef={inputRef}
+      />
     </div>
   );
 }
