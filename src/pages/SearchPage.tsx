@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
@@ -9,8 +9,12 @@ type Status = 'idle' | 'loading' | 'done' | 'error';
 export default function SearchPage() {
   // The query lives in the URL (?q=...) so going "Back" from a game restores the results.
   const [params, setParams] = useSearchParams();
-  const [input, setInput] = useState(params.get('q') ?? '');
-  const term = useDebounce(input.trim(), 400);
+  const urlQuery = params.get('q') ?? '';
+  const [input, setInput] = useState(urlQuery);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounced = useDebounce(input.trim(), 400);
+  // Wait for a pause in typing before searching, but react to an emptied box straight away.
+  const term = input.trim() === '' ? '' : debounced;
 
   const [results, setResults] = useState<GameSummary[]>([]);
   const [status, setStatus] = useState<Status>('idle');
@@ -18,9 +22,21 @@ export default function SearchPage() {
 
   // Keep the URL in sync with the search term.
   useEffect(() => {
-    setParams(term ? { q: term } : {}, { replace: true });
+    if (term !== urlQuery) setParams(term ? { q: term } : {}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term]);
+
+  // The address changed from outside (e.g. clicking the logo, or browser Back/Forward): follow it.
+  useEffect(() => {
+    if (urlQuery !== term) {
+      setInput(urlQuery);
+      if (!urlQuery) {
+        window.scrollTo({ top: 0 });
+        inputRef.current?.focus();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlQuery]);
 
   // Fetch results whenever the (debounced) term changes.
   useEffect(() => {
@@ -53,6 +69,7 @@ export default function SearchPage() {
           <span className="search-icon" aria-hidden>⌕</span>
           <input
             type="search"
+            ref={inputRef}
             autoFocus
             placeholder="Search games, e.g. The Witcher 3"
             value={input}

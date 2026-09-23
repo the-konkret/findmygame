@@ -54,4 +54,36 @@ test.describe('Search', () => {
       await expect(page.getByTestId('game-card-title').first()).toHaveText('Hades');
     });
   });
+
+  test('clicking the logo returns to an empty home page', async ({ page }) => {
+    await step(page, 'Search for "portal"', async () => {
+      await page.goto('/');
+      await page.getByTestId('search-input').fill('portal');
+      await expect(page.getByTestId('search-results')).toBeVisible();
+    });
+
+    await step(page, 'Click the FindMyGame logo on the results page', async () => {
+      await page.getByTestId('brand-link').click();
+    });
+
+    await step(page, 'Check the home page is back to its starting state', async () => {
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByRole('heading', { name: 'Find your next game' })).toBeVisible();
+      await expect(page.getByTestId('search-input')).toHaveValue('');
+      await expect(page.getByTestId('search-input')).toBeFocused();
+      await expect(page.getByTestId('search-results')).toHaveCount(0);
+    });
+
+    await step(page, 'Open a game page and click the logo there', async () => {
+      await page.goto('/game/4200');
+      await expect(page.getByTestId('game-title')).toHaveText('Portal 2');
+      await page.getByTestId('brand-link').click();
+    });
+
+    await step(page, 'Check the home page is shown', async () => {
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByRole('heading', { name: 'Find your next game' })).toBeVisible();
+      await expect(page.getByTestId('search-input')).toHaveValue('');
+    });
+  });
 });

@@ -1,4 +1,5 @@
-import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import SearchPage from './pages/SearchPage';
 import GamePage from './pages/GamePage';
 import LoginPage from './pages/LoginPage';
@@ -6,10 +7,16 @@ import FavouritesPage from './pages/FavouritesPage';
 import { useAuth } from './auth/AuthProvider';
 
 export default function App() {
+  const { pathname } = useLocation();
+  // Start each new page at the top (otherwise a game opened from far down the results starts scrolled).
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
+
   return (
     <div className="app">
       <header className="topbar">
-        <Link to="/" className="brand" data-testid="brand-link">
+        <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
           <span className="brand-mark">◉</span> FindMy<span className="brand-accent">Game</span>
         </Link>
         <UserMenu />
