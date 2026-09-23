@@ -48,12 +48,40 @@ async function shrinkToSquare(file: File): Promise<Blob> {
 
 const pathFor = (userId: string) => `${userId}/avatar.jpg`;
 
+const SESSION_EXPIRED = 'Your login has expired. Please log in again, then try once more.';
+
+/**
+ * Makes sure there's a valid login before changing the account. If the saved login is missing or
+ * out of date (e.g. the computer slept, or you logged in on another tab/site), try to renew it once.
+ */
+async function ensureSession(): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) return;
+  const { data: refreshed } = await supabase.auth.refreshSession();
+  if (!refreshed.session) throw new Error(SESSION_EXPIRED);
+}
+
+/** Saves (or clears) the picture address on the account, renewing the login once if needed. */
+async function saveAvatarUrl(url: string | null): Promise<void> {
+  let { error } = await supabase.auth.updateUser({ data: { avatar_url: url } });
+  if (error && /session/i.test(error.message)) {
+    const { data } = await supabase.auth.refreshSession();
+    if (!data.session) {
+      await supabase.auth.signOut(); // make the page show "Log in" instead of looking logged in
+      throw new Error(SESSION_EXPIRED);
+    }
+    ({ error } = await supabase.auth.updateUser({ data: { avatar_url: url } }));
+  }
+  if (error) throw new Error(`Couldn't save the picture on your account: ${error.message}`);
+}
+
 /** Shrinks, uploads and saves the picture on the account. Returns the picture's address. */
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   const problem = checkAvatarFile(file);
   if (problem) throw new Error(problem);
 
   const blob = await shrinkToSquare(file);
+  await ensureSession();
   const path = pathFor(userId);
   const { error: uploadError } = await supabase.storage
     .from('avatars')
@@ -62,14 +90,13 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
 
   // "?v=…" makes browsers fetch the new picture instead of showing the old one from memory.
   const url = `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
-  const { error } = await supabase.auth.updateUser({ data: { avatar_url: url } });
-  if (error) throw new Error(`Couldn't save the picture on your account: ${error.message}`);
+  await saveAvatarUrl(url);
   return url;
 }
 
 export async function removeAvatar(userId: string): Promise<void> {
+  await ensureSession();
   const { error: removeError } = await supabase.storage.from('avatars').remove([pathFor(userId)]);
   if (removeError) throw new Error(`Couldn't remove the picture: ${removeError.message}`);
-  const { error } = await supabase.auth.updateUser({ data: { avatar_url: null } });
-  if (error) throw new Error(`Couldn't update your account: ${error.message}`);
+  await saveAvatarUrl(null);
 }
