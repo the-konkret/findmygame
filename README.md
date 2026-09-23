@@ -9,7 +9,7 @@ Built with React + TypeScript + Vite and hosted for free on Cloudflare Workers.
 - [x] Game summary page
 - [x] Discounts across PC stores (CheapShark)
 - [x] Website hosting on Cloudflare Workers, API key kept on the server
-- [ ] User accounts with favourites and notes (Supabase)
+- [x] User accounts with favourites and notes (Supabase)
 - [ ] Playwright tests with an Allure report (steps and screenshots)
 - [ ] GitHub Actions runs the tests on every push
 - [ ] Later: installable on phones (PWA)
@@ -40,6 +40,21 @@ The RAWG key is a secret and never reaches the visitor's browser:
 
 To set up your own copy, copy `.env.example` to `.env` and add a free key from https://rawg.io/apidocs.
 
+## Accounts, favourites and notes (Supabase, free)
+
+Logins, favourites and notes are stored in Supabase (a free hosted Postgres database with sign-in built in).
+
+One-time setup:
+
+1. In Supabase, open **SQL Editor → New query**, paste all of `supabase/schema.sql`, and click **Run**.
+   This creates the `favourites` and `notes` tables and the security rules (each person sees only their own data).
+2. **Authentication → Sign In / Providers → Email**: turn off **Confirm email**. The free plan can only send a few emails an hour,
+   and the automated tests need to create accounts. Turn it back on later with your own email sender if you want.
+3. **Authentication → URL Configuration**: set **Site URL** to the live address, and add `http://127.0.0.1:5173/**` under **Redirect URLs**.
+4. Put the project URL and publishable key in `src/lib/supabase.ts`. Both are public by design; the database rules protect the data.
+
+Free-plan note: Supabase pauses a project after 7 days without activity. The scheduled test run (coming later) will keep it awake.
+
 ## Deploying (Cloudflare Workers, free)
 
 The site runs as a Cloudflare Worker: `dist/` is served as static files, and `worker/index.ts` handles `/api/rawg/...`.
@@ -56,8 +71,12 @@ After that, every `git push` to `main` rebuilds and redeploys the site. Its addr
 ## Project layout
 
 ```
-src/pages/                   Search page and Game page
-src/components/              UI pieces (game card, deals panel)
+src/pages/                   Search, Game, Login and Favourites pages
+src/components/              UI pieces (game card, deals, favourite button, notes)
+src/auth/AuthProvider.tsx    who is logged in, log in / sign up / log out
+src/lib/supabase.ts          connection to Supabase
+src/api/userData.ts          favourites and notes (Supabase)
+supabase/schema.sql          database tables and security rules
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
 src/styles.css               theme colours and layout

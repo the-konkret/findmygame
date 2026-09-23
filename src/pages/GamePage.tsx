@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getGame, type GameDetails } from '../api/rawg';
 import DealsPanel from '../components/DealsPanel';
+import FavouriteButton from '../components/FavouriteButton';
+import NotesPanel from '../components/NotesPanel';
 
 export default function GamePage() {
   const { id = '' } = useParams();
@@ -55,14 +57,19 @@ export default function GamePage() {
             {game.released && <span className="pill">Released {game.released}</span>}
             {game.playtime > 0 && <span className="pill">~{game.playtime} h avg playtime</span>}
           </div>
+          <FavouriteButton game={game} />
         </div>
       </div>
 
       <div className="game-body">
-        <article className="panel game-description">
-          <h2>About</h2>
-          <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
-        </article>
+        <div className="game-main">
+          <NotesPanel game={game} />
+
+          <article className="panel game-description">
+            <h2>About</h2>
+            <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
+          </article>
+        </div>
 
         <div className="game-sidebar">
           <DealsPanel gameId={id} gameName={game.name} />

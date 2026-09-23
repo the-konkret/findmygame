@@ -42,7 +42,7 @@ a:hover { color: var(--accent-hover); }
 
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 28px;
   background: rgba(11, 11, 12, 0.92);
   backdrop-filter: blur(8px);
@@ -191,6 +191,71 @@ a:hover { color: var(--accent-hover); }
   .game-title { font-size: 30px; }
 }
 
+/* ---------- Navigation ---------- */
+.nav { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.nav-link { color: var(--text); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.nav-link:hover, .nav-link.active { color: var(--accent); }
+.nav-user { color: var(--text-dim); font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.page-title { font-size: 26px; margin: 4px 0 20px; }
+.small { font-size: 12px; }
+.info-text { margin: 0; color: var(--accent-hover); font-size: 14px; }
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+  background: var(--accent); color: #000; font-weight: 700;
+  border: none; border-radius: 8px; padding: 9px 18px; font-size: 14px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.fav-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.btn-fav {
+  display: inline-block; margin-top: 14px;
+  background: rgba(20, 20, 22, 0.85); color: var(--text);
+  border: 1px solid var(--accent); border-radius: 999px;
+  padding: 7px 16px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.fav-wrap .btn-fav { margin-top: 0; }
+.btn-fav:hover:not(:disabled) { background: rgba(232, 101, 10, 0.18); color: var(--text); }
+.btn-fav.active { background: var(--accent); color: #000; }
+.btn-fav:disabled { opacity: 0.6; cursor: wait; }
+
+/* ---------- Game page main column ---------- */
+.game-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* ---------- Notes ---------- */
+.notes-input {
+  width: 100%; min-height: 110px; resize: vertical;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font: inherit; font-size: 14px; outline: none;
+}
+.notes-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.2); }
+.notes-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.notes-actions { display: flex; align-items: center; gap: 12px; }
+
+/* ---------- Login / sign up ---------- */
+.auth-page { display: flex; justify-content: center; padding-top: 6vh; }
+.auth-card { width: 100%; max-width: 400px; padding: 24px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.auth-tabs button {
+  background: none; border: none; color: var(--text-dim);
+  padding: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.auth-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+.auth-form { display: flex; flex-direction: column; gap: 14px; }
+.auth-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-dim); }
+.auth-form input {
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font-size: 15px; outline: none;
+}
+.auth-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.2); }
+.auth-form .btn-primary { padding: 11px; font-size: 15px; margin-top: 4px; }
+
 /* Phones */
 @media (max-width: 600px) {
   .topbar, .footer { padding-left: 16px; padding-right: 16px; }
@@ -201,4 +266,6 @@ a:hover { color: var(--accent-hover); }
   .game-hero-shade { min-height: 240px; padding: 16px; }
   .game-title { font-size: 26px; margin-top: 48px; }
   .panel { padding: 16px; }
+  .nav { gap: 10px; }
+  .nav-user { display: none; }
 }
