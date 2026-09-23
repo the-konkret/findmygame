@@ -218,4 +218,32 @@ test.describe('Search', () => {
       await expect(page.getByTestId('surprise-button')).toHaveCount(0);
     });
   });
+
+  test('suggestions stay open when the phone keyboard is closed, and close when tapping elsewhere', async ({ page }) => {
+    await step(page, 'Type "hades" and see suggestions', async () => {
+      await page.goto('/');
+      await page.getByTestId('search-input').fill('hades');
+      await expect(page.getByTestId('suggestion-title').first()).toHaveText('Hades');
+    });
+
+    await step(page, 'Close the keyboard (the box loses focus, like tapping ✓ on an iPhone): suggestions stay', async () => {
+      await page.getByTestId('search-input').evaluate((el: HTMLInputElement) => el.blur());
+      await expect(page.getByTestId('search-input')).not.toBeFocused();
+      await page.waitForTimeout(500);
+      await expect(page.getByTestId('search-suggestions')).toBeVisible();
+    });
+
+    await step(page, 'Tap a suggestion: it still opens the game', async () => {
+      await page.getByTestId('suggestion').first().click();
+      await expect(page.getByTestId('game-title')).toHaveText('Hades');
+    });
+
+    await step(page, 'Type again in the top bar, then tap somewhere else on the page: suggestions close', async () => {
+      const input = page.getByTestId('header-search').getByTestId('search-input');
+      await input.fill('portal');
+      await expect(page.getByTestId('search-suggestions')).toBeVisible();
+      await page.getByTestId('game-title').click();
+      await expect(page.getByTestId('search-suggestions')).toHaveCount(0);
+    });
+  });
 });

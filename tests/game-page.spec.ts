@@ -49,6 +49,12 @@ test.describe('Game page', () => {
 
     await step(page, 'Check the log-in prompts', async () => {
       await expect(page.getByTestId('favourite-login')).toContainText('Log in to add to favourites');
+      // the star icon and the text sit exactly in the middle of the button, top to bottom
+      const button = (await page.getByTestId('favourite-login').boundingBox())!;
+      for (const part of [page.getByTestId('favourite-login').locator('svg'), page.getByTestId('favourite-login').locator('span')]) {
+        const box = (await part.boundingBox())!;
+        expect(Math.abs(box.y + box.height / 2 - (button.y + button.height / 2))).toBeLessThanOrEqual(1);
+      }
       await expect(page.getByTestId('notes-login')).toBeVisible();
       await expect(page.getByTestId('favourite-button')).toHaveCount(0);
     });

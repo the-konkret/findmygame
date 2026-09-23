@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
@@ -35,6 +35,26 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
 
   const text = value.trim();
   const term = useDebounce(text, 250);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  // Close the list when you tap or click anywhere outside the search box.
+  // (Not when the box merely loses focus: on iPhones, tapping ✓/Done on the keyboard does that,
+  // and you still want to see the suggestions afterwards.)
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  // Focus moved to another control (e.g. Tab on a keyboard): close. Focus simply dropped
+  // (phone keyboard dismissed, window switched): keep the list.
+  function onBlur(e: FocusEvent<HTMLInputElement>) {
+    const next = e.relatedTarget as Node | null;
+    if (next && !boxRef.current?.contains(next)) setOpen(false);
+  }
 
   // Fetch suggestions while the dropdown is open and the typing has paused.
   useEffect(() => {
@@ -99,7 +119,7 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
   const activeId = showDropdown && active >= 0 ? `${listId}-opt-${active}` : undefined;
 
   return (
-    <div className={`search-box ${compact ? 'compact' : ''}`}>
+    <div className={`search-box ${compact ? 'compact' : ''}`} ref={boxRef}>
       <span className="search-icon" aria-hidden>⌕</span>
       <input
         ref={inputRef}
@@ -115,7 +135,7 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
         }}
         onKeyDown={onKeyDown}
         onFocus={() => text.length >= 2 && setOpen(true)}
-        onBlur={() => setOpen(false)}
+        onBlur={onBlur}
         role="combobox"
         aria-label="Search games"
         aria-autocomplete="list"

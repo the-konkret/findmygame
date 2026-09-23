@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { addFavourite, isFavourite, peekFavourite, removeFavourite, type GameRef } from '../api/userData';
+import { StarIcon } from './Icons';
 
 export default function FavouriteButton({ game }: { game: GameRef }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   // Use the remembered answer if there is one, so the button is right from the very first frame.
   const [fav, setFav] = useState<boolean | null>(() => (user ? peekFavourite(user.id, game.id) ?? null : null));
-  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -41,23 +42,28 @@ export default function FavouriteButton({ game }: { game: GameRef }) {
   if (!user) {
     return (
       <Link to="/login" state={{ from: location.pathname }} className="btn-fav" data-testid="favourite-login">
-        ☆ Log in to add to favourites
+        <StarIcon filled={false} />
+        <span>Log in to add to favourites</span>
       </Link>
     );
   }
 
+  // Flip the button straight away and save in the background (no greyed-out "waiting" moment).
+  // If saving fails, flip it back and say so.
   async function toggle() {
-    if (!user) return;
-    setBusy(true);
+    if (!user || saving) return;
+    const next = !fav;
+    setFav(next);
+    setSaving(true);
     setError('');
     try {
-      if (fav) await removeFavourite(user.id, game.id);
-      else await addFavourite(user.id, game);
-      setFav(!fav);
+      if (next) await addFavourite(user.id, game);
+      else await removeFavourite(user.id, game.id);
     } catch (e) {
+      setFav(!next);
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
 
@@ -67,11 +73,12 @@ export default function FavouriteButton({ game }: { game: GameRef }) {
         type="button"
         className={`btn-fav ${fav ? 'active' : ''}`}
         onClick={toggle}
-        disabled={busy || fav === null}
         aria-pressed={!!fav}
+        aria-busy={saving}
         data-testid="favourite-button"
       >
-        {fav ? '★ In favourites' : '☆ Add to favourites'}
+        <StarIcon filled={!!fav} />
+        <span>{fav ? 'In favourites' : 'Add to favourites'}</span>
       </button>
       {error && <span className="error-text small" data-testid="favourite-error">{error}</span>}
     </div>

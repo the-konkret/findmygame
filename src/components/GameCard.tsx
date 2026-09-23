@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { GameSummary } from '../api/rawg';
 import LoadingImage from './LoadingImage';
+import { StarIcon } from './Icons';
 
 export default function GameCard({ game, isFavourite = false }: { game: GameSummary; isFavourite?: boolean }) {
   const year = game.released ? game.released.slice(0, 4) : 'TBA';
@@ -16,7 +17,7 @@ export default function GameCard({ game, isFavourite = false }: { game: GameSumm
         )}
         {isFavourite && (
           <span className="badge-fav" title="In your favourites" aria-label="In your favourites" data-testid="favourite-badge">
-            ★
+            <StarIcon size={14} />
           </span>
         )}
         {game.metacritic != null && (

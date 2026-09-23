@@ -4,8 +4,10 @@ import SearchPage from './pages/SearchPage';
 import GamePage from './pages/GamePage';
 import LoginPage from './pages/LoginPage';
 import FavouritesPage from './pages/FavouritesPage';
+import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import SearchBox from './components/SearchBox';
+import { CogIcon, StarIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -22,7 +24,7 @@ export default function App() {
         </Link>
         {/* The home page has its own big search box; every other page gets one in the top bar.
             key={pathname} empties it whenever you move to another page. */}
-        {pathname !== '/' && <HeaderSearch key={pathname} />}
+        {pathname !== '/' && <HeaderSearch key={pathname} hideOnPhone={pathname === '/login'} />}
         <UserMenu />
       </header>
 
@@ -32,6 +34,7 @@ export default function App() {
           <Route path="/game/:id" element={<GamePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/favourites" element={<FavouritesPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<p className="status">Page not found. <Link to="/">Go to search</Link></p>} />
         </Routes>
       </main>
@@ -50,13 +53,14 @@ export default function App() {
   );
 }
 
-function HeaderSearch() {
+/** hideOnPhone: on small screens, leave it out (the log-in page doesn't need it and space is tight). */
+function HeaderSearch({ hideOnPhone = false }: { hideOnPhone?: boolean }) {
   const navigate = useNavigate();
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="topbar-search" data-testid="header-search">
+    <div className={`topbar-search ${hideOnPhone ? 'hide-on-phone' : ''}`} data-testid="header-search">
       <SearchBox
         compact
         value={value}
@@ -72,8 +76,7 @@ function HeaderSearch() {
 }
 
 function UserMenu() {
-  const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   if (loading) return null;
 
@@ -85,23 +88,32 @@ function UserMenu() {
     );
   }
 
+  // Logged in: favourites, and a link to the account page (picture, email, log out):
+  // your profile picture if you've uploaded one, otherwise a cog.
+  const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+
   return (
     <nav className="nav">
-      <NavLink to="/favourites" className="nav-link" aria-label="My favourites" data-testid="nav-favourites">
-        ★<span className="nav-label"> My favourites</span>
+      <NavLink to="/favourites" className="nav-link nav-favourites" aria-label="My favourites" data-testid="nav-favourites">
+        <StarIcon size={16} />
+        <span className="nav-label">My favourites</span>
       </NavLink>
-      <span className="nav-user" title={user.email ?? ''} data-testid="nav-user">{user.email}</span>
-      <button
-        type="button"
-        className="btn-ghost"
-        onClick={async () => {
-          await signOut();
-          navigate('/');
-        }}
-        data-testid="nav-logout"
+      <NavLink
+        to="/account"
+        className={`nav-icon ${avatarUrl ? 'nav-avatar' : 'nav-cog'}`}
+        aria-label="Account settings"
+        title="Account settings"
+        data-testid="nav-account"
       >
-        Log out
-      </button>
+        {avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
+      </NavLink>
     </nav>
   );
+}
+
+/** Your profile picture in the top bar. If it can't be loaded, show the cog instead. */
+function NavAvatar({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <CogIcon />;
+  return <img src={src} alt="" className="nav-avatar-img" onError={() => setFailed(true)} data-testid="nav-avatar" />;
 }

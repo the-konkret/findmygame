@@ -8,12 +8,14 @@ test.describe('Favourites', () => {
   test('add a game to favourites, see it in the list, and remove it', async ({ page }) => {
     await step(page, 'Open The Witcher 3 page while logged in', async () => {
       await page.goto('/game/3328');
-      await expect(page.getByTestId('favourite-button')).toHaveText('☆ Add to favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveText('Add to favourites');
     });
 
     await step(page, 'Add the game to favourites', async () => {
       await page.getByTestId('favourite-button').click();
-      await expect(page.getByTestId('favourite-button')).toHaveText('★ In favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveText('In favourites');
+      // the button changes at once; wait until it has also been saved
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-busy', 'false');
     });
 
     await step(page, 'Reload and check the button shows "In favourites" straight away, with no flicker', async () => {
@@ -27,9 +29,9 @@ test.describe('Favourites', () => {
         }).observe(document, { subtree: true, childList: true, characterData: true });
       });
       await page.reload();
-      await expect(page.getByTestId('favourite-button')).toHaveText('★ In favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveText('In favourites');
       const labels = await page.evaluate(() => (window as unknown as { favLabels: string[] }).favLabels);
-      expect(labels).toEqual(['★ In favourites']);
+      expect(labels).toEqual(['In favourites']);
     });
 
     await step(page, 'Search "witcher" and check The Witcher 3 has a star, and the other results don\'t', async () => {
@@ -54,7 +56,8 @@ test.describe('Favourites', () => {
       await page.getByTestId('favourite-card').filter({ hasText: 'The Witcher 3' }).click();
       await expect(page.getByTestId('game-title')).toHaveText('The Witcher 3: Wild Hunt');
       await page.getByTestId('favourite-button').click();
-      await expect(page.getByTestId('favourite-button')).toHaveText('☆ Add to favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveText('Add to favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-busy', 'false');
     });
 
     await step(page, 'Check the list no longer has the game', async () => {

@@ -91,6 +91,10 @@ test.describe('Phone layout', () => {
       await expectNoZoomOnTap(page, 'auth-email');
       await expectNoZoomOnTap(page, 'auth-password');
     });
+
+    await step(page, 'Check there is no search box in the top bar on the log-in page', async () => {
+      await expect(page.getByTestId('header-search')).toBeHidden();
+    });
   });
 
   test.describe('logged in', () => {
@@ -99,14 +103,14 @@ test.describe('Phone layout', () => {
     test('top bar fits on one line and the notes box does not zoom', async ({ page }) => {
       await step(page, 'Open the Portal 2 page, logged in, on a phone', async () => {
         await page.goto('/game/4200');
-        await expect(page.getByTestId('nav-logout')).toBeVisible();
+        await expect(page.getByTestId('nav-account')).toBeVisible();
         await expectNoSideScroll(page);
       });
 
-      await step(page, 'Check logo, favourites and Log out share one row', async () => {
+      await step(page, 'Check logo, favourites and the cog share one row', async () => {
         const logo = (await page.getByTestId('brand-link').boundingBox())!;
         const favourites = (await page.getByTestId('nav-favourites').boundingBox())!;
-        const logout = (await page.getByTestId('nav-logout').boundingBox())!;
+        const logout = (await page.getByTestId('nav-account').boundingBox())!;
         const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
         expect(Math.abs(middle(favourites) - middle(logo))).toBeLessThan(12);
         expect(Math.abs(middle(logout) - middle(logo))).toBeLessThan(12);

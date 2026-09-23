@@ -20,7 +20,9 @@ setup('create a logged-in test account', async ({ page }) => {
   });
 
   await step(page, 'Check the account is logged in', async () => {
-    await expect(page.getByTestId('nav-user')).toHaveText(email);
+    await expect(page.getByTestId('nav-account')).toBeVisible();
+    await page.getByTestId('nav-account').click();
+    await expect(page.getByTestId('account-email')).toHaveText(email);
   });
 
   await page.context().storageState({ path: LOGGED_IN_STATE });

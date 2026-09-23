@@ -66,7 +66,7 @@ What's covered:
 |---|---|
 | `tests/search.spec.ts` | suggestions dropdown (mouse and keyboard), full results and order, "no games found", results kept after going back, logo returns home, "Surprise me" |
 | `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages, skeletons while pictures load |
-| `tests/accounts.spec.ts` | sign up, log out, log in, wrong password, protected favourites page |
+| `tests/accounts.spec.ts` | sign up, cog opens the account page (email there, not in the top bar), log out, log in, wrong password, protected favourites page; profile picture upload (shown in the top bar instead of the cog), too-big and wrong files refused, remove |
 | `tests/favourites-and-notes.spec.ts` | add, list and remove a favourite (no flicker, ★ on search results); save, reload and delete a note |
 | `tests/mobile.spec.ts` | on a phone-sized screen: nothing wider than the screen, results as a list, game page section order, top bar fits, no zoom when tapping text boxes |
 | `tests/auth.setup.ts` | runs first: creates a fresh test account for the logged-in tests |
@@ -105,6 +105,9 @@ One-time setup:
    and the automated tests need to create accounts. Turn it back on later with your own email sender if you want.
 3. **Authentication → URL Configuration**: set **Site URL** to the live address, and add `http://127.0.0.1:5173/**` under **Redirect URLs**.
 4. Put the project URL and publishable key in `src/lib/supabase.ts`. Both are public by design; the database rules protect the data.
+5. For profile pictures: run `supabase/avatars.sql` the same way. It creates the `avatars` storage bucket
+   (public pictures, 200 KB limit, JPG/PNG/WebP only) and rules so each person can only change their own picture.
+   The site accepts pictures up to 1 MB, crops them to a square and shrinks them to 256×256 (~20–40 KB) before uploading.
 
 Free-plan note: Supabase pauses a project after 7 days without activity. The twice-weekly scheduled test run keeps it awake.
 
@@ -129,6 +132,9 @@ src/components/              UI pieces (search box with suggestions, game card, 
 src/auth/AuthProvider.tsx    who is logged in, log in / sign up / log out
 src/lib/supabase.ts          connection to Supabase
 src/api/userData.ts          favourites and notes (Supabase)
+src/api/avatar.ts            profile pictures (Supabase Storage)
+src/pages/AccountPage.tsx    account page: picture, email, log out
+supabase/avatars.sql         storage bucket and rules for profile pictures
 supabase/schema.sql          database tables and security rules
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
