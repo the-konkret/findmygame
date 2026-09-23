@@ -1,11 +1,12 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { useLogOut } from '../auth/useLogOut';
 import { useAuth } from '../auth/AuthProvider';
 import { removeAvatar, uploadAvatar } from '../api/avatar';
 
 export default function AccountPage() {
-  const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const logOut = useLogOut();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<'' | 'uploading' | 'removing'>('');
   const [error, setError] = useState('');
@@ -98,10 +99,7 @@ export default function AccountPage() {
         <button
           type="button"
           className="btn-ghost account-logout"
-          onClick={async () => {
-            await signOut();
-            navigate('/');
-          }}
+          onClick={logOut}
           data-testid="account-logout"
         >
           Log out

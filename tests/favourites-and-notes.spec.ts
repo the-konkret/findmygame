@@ -8,30 +8,37 @@ test.describe('Favourites', () => {
   test('add a game to favourites, see it in the list, and remove it', async ({ page }) => {
     await step(page, 'Open The Witcher 3 page while logged in', async () => {
       await page.goto('/game/3328');
-      await expect(page.getByTestId('favourite-button')).toHaveText('Add to favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    await step(page, 'Check the star sits in the top-right corner of the game picture', async () => {
+      const hero = (await page.locator('.game-hero').boundingBox())!;
+      const star = (await page.getByTestId('favourite-button').boundingBox())!;
+      expect(star.y - hero.y).toBeLessThan(40); // near the top
+      expect(hero.x + hero.width - (star.x + star.width)).toBeLessThan(40); // near the right
     });
 
     await step(page, 'Add the game to favourites', async () => {
       await page.getByTestId('favourite-button').click();
-      await expect(page.getByTestId('favourite-button')).toHaveText('In favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-pressed', 'true');
       // the button changes at once; wait until it has also been saved
       await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-busy', 'false');
     });
 
-    await step(page, 'Reload and check the button shows "In favourites" straight away, with no flicker', async () => {
+    await step(page, 'Reload and check the star is filled straight away, with no flicker', async () => {
       // Record every label the favourite button shows while the page loads.
       await page.addInitScript(() => {
         const seen: string[] = [];
         (window as unknown as { favLabels: string[] }).favLabels = seen;
         new MutationObserver(() => {
-          const label = document.querySelector('[data-testid="favourite-button"]')?.textContent;
+          const label = document.querySelector('[data-testid="favourite-button"]')?.getAttribute('aria-label');
           if (label && seen[seen.length - 1] !== label) seen.push(label);
         }).observe(document, { subtree: true, childList: true, characterData: true });
       });
       await page.reload();
-      await expect(page.getByTestId('favourite-button')).toHaveText('In favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-pressed', 'true');
       const labels = await page.evaluate(() => (window as unknown as { favLabels: string[] }).favLabels);
-      expect(labels).toEqual(['In favourites']);
+      expect(labels).toEqual(['Remove from favourites']);
     });
 
     await step(page, 'Search "witcher" and check The Witcher 3 has a star, and the other results don\'t', async () => {
@@ -56,7 +63,7 @@ test.describe('Favourites', () => {
       await page.getByTestId('favourite-card').filter({ hasText: 'The Witcher 3' }).click();
       await expect(page.getByTestId('game-title')).toHaveText('The Witcher 3: Wild Hunt');
       await page.getByTestId('favourite-button').click();
-      await expect(page.getByTestId('favourite-button')).toHaveText('Add to favourites');
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-pressed', 'false');
       await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-busy', 'false');
     });
 
@@ -109,6 +116,43 @@ test.describe('Notes', () => {
       await page.reload();
       await expect(page.getByTestId('notes-input')).toBeEnabled();
       await expect(page.getByTestId('notes-input')).toHaveValue('');
+    });
+  });
+});
+
+test.describe('Wishlist', () => {
+  test('add a game to the wishlist, see it on the Wishlist page, and remove it', async ({ page }) => {
+    await step(page, 'Open the Hades page while logged in', async () => {
+      await page.goto('/game/274755');
+      await expect(page.getByTestId('game-title')).toHaveText('Hades');
+      await expect(page.getByTestId('wishlist-button')).toHaveText('Add to wishlist');
+    });
+
+    await step(page, 'Click "Add to wishlist"', async () => {
+      await page.getByTestId('wishlist-button').click();
+      await expect(page.getByTestId('wishlist-button')).toHaveText('On your wishlist');
+      await expect(page.getByTestId('wishlist-button')).toHaveAttribute('aria-busy', 'false');
+      // the wishlist is separate from favourites
+      await expect(page.getByTestId('favourite-button')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    await step(page, 'Open the Wishlist page from the top bar and find the game', async () => {
+      await page.getByTestId('nav-wishlist').click();
+      await expect(page).toHaveURL(/\/wishlist$/);
+      await expect(page.getByRole('heading', { name: 'Wishlist' })).toBeVisible();
+      await expect(page.getByTestId('wishlist-card-title')).toContainText(['Hades']);
+    });
+
+    await step(page, 'Open the game from the list and remove it from the wishlist', async () => {
+      await page.getByTestId('wishlist-card').filter({ hasText: 'Hades' }).first().click();
+      await page.getByTestId('wishlist-button').click();
+      await expect(page.getByTestId('wishlist-button')).toHaveText('Add to wishlist');
+      await expect(page.getByTestId('wishlist-button')).toHaveAttribute('aria-busy', 'false');
+    });
+
+    await step(page, 'Check the Wishlist page is empty again', async () => {
+      await page.getByTestId('nav-wishlist').click();
+      await expect(page.getByTestId('wishlists-empty')).toBeVisible();
     });
   });
 });

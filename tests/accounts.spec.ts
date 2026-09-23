@@ -34,12 +34,42 @@ test.describe('Accounts', () => {
       await expect(page.getByTestId('nav-account')).toHaveCount(0);
     });
 
-    await step(page, 'Log back in with the same account', async () => {
+    await step(page, 'Check logging out landed on the home page', async () => {
+      await expect(page).toHaveURL(/\/$/);
+    });
+
+    await step(page, 'Log back in with the same account and land on the home page, not Account', async () => {
       await page.getByTestId('nav-login').click();
       await page.getByTestId('auth-email').fill(email);
       await page.getByTestId('auth-password').fill(TEST_PASSWORD);
       await page.getByTestId('auth-submit').click();
       await expect(page.getByTestId('nav-account')).toBeVisible();
+      await expect(page).toHaveURL(/\/$/);
+    });
+
+    await step(page, 'Point at the cog: a menu with Settings and Log out appears', async () => {
+      await page.getByTestId('nav-account').hover();
+      const menu = page.getByTestId('account-menu');
+      await expect(menu).toBeVisible();
+      await expect(menu.getByRole('menuitem')).toHaveText(['Settings', 'Log out']);
+    });
+
+    await step(page, 'Move the mouse away: the menu closes', async () => {
+      await page.getByRole('heading', { name: 'Find your next game' }).hover();
+      await expect(page.getByTestId('account-menu')).toHaveCount(0);
+    });
+
+    await step(page, 'Open the menu and choose Settings', async () => {
+      await page.getByTestId('nav-account').hover();
+      await page.getByTestId('menu-settings').click();
+      await expect(page).toHaveURL(/\/account$/);
+    });
+
+    await step(page, 'Open the menu and choose Log out: back on the home page, logged out', async () => {
+      await page.getByTestId('nav-account').hover();
+      await page.getByTestId('menu-logout').click();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByTestId('nav-login')).toBeVisible();
     });
   });
 

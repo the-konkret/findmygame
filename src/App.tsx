@@ -4,10 +4,12 @@ import SearchPage from './pages/SearchPage';
 import GamePage from './pages/GamePage';
 import LoginPage from './pages/LoginPage';
 import FavouritesPage from './pages/FavouritesPage';
+import WishlistPage from './pages/WishlistPage';
 import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import SearchBox from './components/SearchBox';
-import { CogIcon, StarIcon } from './components/Icons';
+import AccountMenu from './components/AccountMenu';
+import { CogIcon, GiftIcon, StarIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -34,6 +36,7 @@ export default function App() {
           <Route path="/game/:id" element={<GamePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/favourites" element={<FavouritesPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<p className="status">Page not found. <Link to="/">Go to search</Link></p>} />
         </Routes>
@@ -98,15 +101,14 @@ function UserMenu() {
         <StarIcon size={16} />
         <span className="nav-label">My favourites</span>
       </NavLink>
-      <NavLink
-        to="/account"
-        className={`nav-icon ${avatarUrl ? 'nav-avatar' : 'nav-cog'}`}
-        aria-label="Account settings"
-        title="Account settings"
-        data-testid="nav-account"
-      >
-        {avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
+      <NavLink to="/wishlist" className="nav-link nav-favourites" aria-label="Wishlist" data-testid="nav-wishlist">
+        <GiftIcon size={16} />
+        <span className="nav-label">Wishlist</span>
       </NavLink>
+      <AccountMenu
+        isAvatar={!!avatarUrl}
+        icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
+      />
     </nav>
   );
 }

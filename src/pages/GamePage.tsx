@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getGame, type GameDetails } from '../api/rawg';
-import { prefetchFavourites } from '../api/userData';
+import { favourites, wishlist } from '../api/userData';
 import { useAuth } from '../auth/AuthProvider';
 import DealsPanel from '../components/DealsPanel';
 import FavouriteButton from '../components/FavouriteButton';
+import WishlistButton from '../components/WishlistButton';
 import NotesPanel from '../components/NotesPanel';
 import LoadingImage from '../components/LoadingImage';
 
@@ -15,9 +16,11 @@ export default function GamePage() {
   const [error, setError] = useState('');
   const { user } = useAuth();
 
-  // Ask for the favourites at the same time as the game details, so the answer is ready when the page shows.
+  // Ask for your favourites and wishlist at the same time as the game details, so they're ready when the page shows.
   useEffect(() => {
-    if (user) prefetchFavourites(user.id);
+    if (!user) return;
+    favourites.prefetch(user.id);
+    wishlist.prefetch(user.id);
   }, [user]);
 
   useEffect(() => {
@@ -53,6 +56,10 @@ export default function GamePage() {
         {game.background_image && (
           <LoadingImage key={game.id} src={game.background_image} alt="" loading="eager" fallback="" className="game-hero-img" />
         )}
+        {/* favourite star in the top-right corner of the picture */}
+        <div className="game-hero-corner">
+          <FavouriteButton game={game} />
+        </div>
         <div className="game-hero-shade">
           <button className="btn-ghost" onClick={() => navigate(-1)} data-testid="back-button">
             ← Back
@@ -66,7 +73,7 @@ export default function GamePage() {
             {game.released && <span className="pill">Released {game.released}</span>}
             {game.playtime > 0 && <span className="pill">~{game.playtime} h avg playtime</span>}
           </div>
-          <FavouriteButton game={game} />
+          <WishlistButton game={game} />
         </div>
       </div>
 

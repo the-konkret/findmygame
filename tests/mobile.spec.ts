@@ -107,14 +107,31 @@ test.describe('Phone layout', () => {
         await expectNoSideScroll(page);
       });
 
-      await step(page, 'Check logo, favourites and the cog share one row', async () => {
+      await step(page, 'Check logo, favourites, wishlist and the cog share one row', async () => {
         const logo = (await page.getByTestId('brand-link').boundingBox())!;
         const favourites = (await page.getByTestId('nav-favourites').boundingBox())!;
         const logout = (await page.getByTestId('nav-account').boundingBox())!;
         const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
         expect(Math.abs(middle(favourites) - middle(logo))).toBeLessThan(12);
+        const wishlist = (await page.getByTestId('nav-wishlist').boundingBox())!;
+        expect(Math.abs(middle(wishlist) - middle(logo))).toBeLessThan(12);
         expect(Math.abs(middle(logout) - middle(logo))).toBeLessThan(12);
         expect(logout.x + logout.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      });
+
+      await step(page, 'Tap the cog: the menu opens; tap again: it closes', async () => {
+        await page.getByTestId('nav-account').tap();
+        await expect(page.getByTestId('account-menu')).toBeVisible();
+        await expect(page).toHaveURL(/\/game\/4200$/); // tapping opens the menu, it doesn't leave the page
+        await page.getByTestId('nav-account').tap();
+        await expect(page.getByTestId('account-menu')).toHaveCount(0);
+      });
+
+      await step(page, 'Tap the cog, then Settings', async () => {
+        await page.getByTestId('nav-account').tap();
+        await page.getByTestId('menu-settings').tap();
+        await expect(page).toHaveURL(/\/account$/);
+        await page.goBack();
       });
 
       await step(page, 'Check the notes box does not make the phone zoom', async () => {

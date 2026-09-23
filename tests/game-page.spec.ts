@@ -48,15 +48,17 @@ test.describe('Game page', () => {
     });
 
     await step(page, 'Check the log-in prompts', async () => {
-      await expect(page.getByTestId('favourite-login')).toContainText('Log in to add to favourites');
+      await expect(page.getByTestId('favourite-login')).toHaveAttribute('aria-label', 'Log in to add to favourites');
+      await expect(page.getByTestId('wishlist-login')).toContainText('Log in to add to wishlist');
       // the star icon and the text sit exactly in the middle of the button, top to bottom
-      const button = (await page.getByTestId('favourite-login').boundingBox())!;
-      for (const part of [page.getByTestId('favourite-login').locator('svg'), page.getByTestId('favourite-login').locator('span')]) {
+      const button = (await page.getByTestId('wishlist-login').boundingBox())!;
+      for (const part of [page.getByTestId('wishlist-login').locator('svg'), page.getByTestId('wishlist-login').locator('span')]) {
         const box = (await part.boundingBox())!;
         expect(Math.abs(box.y + box.height / 2 - (button.y + button.height / 2))).toBeLessThanOrEqual(1);
       }
       await expect(page.getByTestId('notes-login')).toBeVisible();
       await expect(page.getByTestId('favourite-button')).toHaveCount(0);
+      await expect(page.getByTestId('wishlist-button')).toHaveCount(0);
     });
 
     await step(page, 'Follow the prompt to the log-in page', async () => {
