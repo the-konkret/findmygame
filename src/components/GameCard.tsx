@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { GameSummary } from '../api/rawg';
 
-export default function GameCard({ game }: { game: GameSummary }) {
+export default function GameCard({ game, isFavourite = false }: { game: GameSummary; isFavourite?: boolean }) {
   const year = game.released ? game.released.slice(0, 4) : 'TBA';
   const platforms = (game.parent_platforms ?? []).map((p) => p.platform.name).join(' · ');
 
@@ -12,6 +12,11 @@ export default function GameCard({ game }: { game: GameSummary }) {
           <img src={game.background_image} alt={game.name} loading="lazy" />
         ) : (
           <div className="card-image-empty">No image</div>
+        )}
+        {isFavourite && (
+          <span className="badge-fav" title="In your favourites" aria-label="In your favourites" data-testid="favourite-badge">
+            ★
+          </span>
         )}
         {game.metacritic != null && (
           <span className="badge-score" title="Metacritic">{game.metacritic}</span>

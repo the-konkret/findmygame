@@ -32,6 +32,18 @@ test.describe('Favourites', () => {
       expect(labels).toEqual(['★ In favourites']);
     });
 
+    await step(page, 'Search "witcher" and check The Witcher 3 has a star, and the other results don\'t', async () => {
+      const input = page.getByTestId('header-search').getByTestId('search-input');
+      await input.fill('witcher');
+      await input.press('Enter');
+      const witcher3 = page.getByTestId('game-card').filter({ hasText: 'The Witcher 3: Wild Hunt' }).first();
+      await expect(witcher3.getByTestId('favourite-badge')).toBeVisible();
+      const witcher2 = page.getByTestId('game-card').filter({ hasText: 'The Witcher 2' }).first();
+      await expect(witcher2).toBeVisible();
+      await expect(witcher2.getByTestId('favourite-badge')).toHaveCount(0);
+      await expect(page.getByTestId('favourite-badge')).toHaveCount(1);
+    });
+
     await step(page, 'Open "My favourites" and find the game', async () => {
       await page.getByTestId('nav-favourites').click();
       await expect(page.getByRole('heading', { name: 'My favourites' })).toBeVisible();
@@ -48,6 +60,14 @@ test.describe('Favourites', () => {
     await step(page, 'Check the list no longer has the game', async () => {
       await page.getByTestId('nav-favourites').click();
       await expect(page.getByTestId('favourites-empty')).toBeVisible();
+    });
+
+    await step(page, 'Search "witcher" again and check the star is gone', async () => {
+      const input = page.getByTestId('header-search').getByTestId('search-input');
+      await input.fill('witcher');
+      await input.press('Enter');
+      await expect(page.getByTestId('game-card-title').first()).toHaveText(/The Witcher 3/);
+      await expect(page.getByTestId('favourite-badge')).toHaveCount(0);
     });
   });
 });

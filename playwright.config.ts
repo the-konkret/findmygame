@@ -37,6 +37,14 @@ export default defineConfig({
     {
       name: 'desktop-chrome',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /mobile\.spec\.ts/,
+      dependencies: ['setup'],
+    },
+    // Phone-sized screen with touch (Pixel 7, runs in the same Chromium, nothing extra to install).
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+      testMatch: /mobile\.spec\.ts/,
       dependencies: ['setup'],
     },
   ],

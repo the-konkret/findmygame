@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
+import { useFavouriteIds } from '../hooks/useFavouriteIds';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
@@ -17,6 +18,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<GameSummary[]>([]);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+  const favouriteIds = useFavouriteIds(); // to put a ★ on games you've already saved
 
   // The address changed (a search was submitted, the logo was clicked, Back/Forward): follow it.
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function SearchPage() {
       {results.length > 0 && (
         <div className="grid" data-testid="search-results">
           {results.map((g) => (
-            <GameCard key={g.id} game={g} />
+            <GameCard key={g.id} game={g} isFavourite={favouriteIds?.has(g.id) ?? false} />
           ))}
         </div>
       )}

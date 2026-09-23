@@ -53,6 +53,16 @@ function favouriteIds(userId: string): Promise<Set<number>> {
   return favCache.ids;
 }
 
+/** All the IDs of the user's favourite games (a copy, safe to keep). */
+export async function getFavouriteIds(userId: string): Promise<Set<number>> {
+  return new Set(await favouriteIds(userId));
+}
+
+/** The IDs if they're already loaded, without waiting; null if not loaded yet. */
+export function peekFavouriteIds(userId: string): Set<number> | null {
+  return favCache?.userId === userId && favCache.known ? new Set(favCache.known) : null;
+}
+
 /** Start loading the favourite IDs early (e.g. while the game details are still loading). */
 export function prefetchFavourites(userId: string): void {
   favouriteIds(userId).catch(() => {});

@@ -87,7 +87,9 @@ function UserMenu() {
 
   return (
     <nav className="nav">
-      <NavLink to="/favourites" className="nav-link" data-testid="nav-favourites">★ My favourites</NavLink>
+      <NavLink to="/favourites" className="nav-link" aria-label="My favourites" data-testid="nav-favourites">
+        ★<span className="nav-label"> My favourites</span>
+      </NavLink>
       <span className="nav-user" title={user.email ?? ''} data-testid="nav-user">{user.email}</span>
       <button
         type="button"
