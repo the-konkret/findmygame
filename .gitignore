@@ -16,6 +16,8 @@ test-results/
 playwright-report/
 allure-results/
 allure-report/
+playwright/.auth/
+blob-report/
 
 .DS_Store
 Thumbs.db

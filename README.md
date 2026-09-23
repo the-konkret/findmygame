@@ -10,7 +10,7 @@ Built with React + TypeScript + Vite and hosted for free on Cloudflare Workers.
 - [x] Discounts across PC stores (CheapShark)
 - [x] Website hosting on Cloudflare Workers, API key kept on the server
 - [x] User accounts with favourites and notes (Supabase)
-- [ ] Playwright tests with an Allure report (steps and screenshots)
+- [x] Playwright tests with an Allure report (steps and screenshots)
 - [ ] GitHub Actions runs the tests on every push
 - [ ] Later: installable on phones (PWA)
 
@@ -39,6 +39,40 @@ The RAWG key is a secret and never reaches the visitor's browser:
 - **Online** it's stored in Cloudflare as a secret, and `worker/index.ts` adds it to requests.
 
 To set up your own copy, copy `.env.example` to `.env` and add a free key from https://rawg.io/apidocs.
+
+## Automated tests (Playwright + Allure)
+
+End-to-end tests drive a real Chrome browser through the site, just like a person would.
+Every test is split into named steps, and each step ends with a screenshot, so the report shows what the page looked like at every point.
+
+First time only:
+
+```powershell
+npm install
+npx playwright install chromium
+```
+
+| Command | What it does |
+|---|---|
+| `npm test` | Runs all tests against your computer (starts `npm run dev` if it isn't running) |
+| `npm run test:live` | Runs all tests against the live website |
+| `npm run test:ui` | Opens Playwright's visual runner: pick tests, watch them run, step through them |
+| `npm run report` | Builds the Allure report (steps and screenshots) and opens it in your browser |
+| `npx playwright show-report` | Opens Playwright's own HTML report (includes traces for failed tests) |
+
+What's covered:
+
+| File | Tests |
+|---|---|
+| `tests/search.spec.ts` | search results and order, "no games found", results kept after going back |
+| `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages |
+| `tests/accounts.spec.ts` | sign up, log out, log in, wrong password, protected favourites page |
+| `tests/favourites-and-notes.spec.ts` | add, list and remove a favourite; save, reload and delete a note |
+| `tests/auth.setup.ts` | runs first: creates a fresh test account for the logged-in tests |
+
+Each run signs up new throwaway accounts (`fmg-test-...@mailinator.com`), so runs never interfere with each other.
+You can delete old test users in Supabase under **Authentication → Users**.
+The helper `step()` in `tests/support/step.ts` adds the screenshot to each step.
 
 ## Accounts, favourites and notes (Supabase, free)
 
@@ -80,6 +114,9 @@ supabase/schema.sql          database tables and security rules
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
 src/styles.css               theme colours and layout
+tests/                       Playwright end-to-end tests
+playwright.config.ts         test settings (which site, browsers, reports)
+allurerc.mjs                 Allure report settings
 worker/index.ts              server code on Cloudflare: adds the secret RAWG key to /api/rawg requests
 wrangler.jsonc               Cloudflare Worker settings
 vite.config.ts               local dev server (does the Worker's job on your computer)
