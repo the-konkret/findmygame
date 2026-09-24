@@ -71,7 +71,9 @@ a:hover { color: var(--accent-hover); }
 .search-box { position: relative; width: 100%; max-width: 640px; }
 .search-icon {
   position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
-  color: var(--accent); font-size: 22px; pointer-events: none;
+  color: var(--accent); font-size: 22px;
+  z-index: 1; cursor: default; user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent; /* no flash when tapped: it's a secret */
 }
 .search-box input {
   width: 100%; padding: 14px 18px 14px 48px;
@@ -531,4 +533,15 @@ img.fade-in.loaded { opacity: 1; }
   .auth-page { padding-top: 2vh; }
   .notes-bar { flex-direction: column; align-items: stretch; }
   .notes-actions { justify-content: space-between; }
+}
+
+/* ---------- Easter egg: raining faces (see src/components/faceRain.ts) ---------- */
+.face-rain { position: fixed; inset: 0; z-index: 1000; overflow: hidden; pointer-events: none; }
+.face-drop {
+  position: absolute; top: -140px; height: auto; margin-left: -45px;
+  animation: face-fall var(--fall, 3s) linear forwards;
+  will-change: transform;
+}
+@keyframes face-fall {
+  to { transform: translateY(calc(100vh + 180px)) rotate(var(--spin, 0deg)); }
 }

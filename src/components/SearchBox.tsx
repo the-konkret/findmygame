@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from 'react';
+import { countSecretTap } from './faceRain';
 import { useNavigate } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
@@ -120,7 +121,7 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
 
   return (
     <div className={`search-box ${compact ? 'compact' : ''}`} ref={boxRef}>
-      <span className="search-icon" aria-hidden>⌕</span>
+      <span className="search-icon" aria-hidden onClick={countSecretTap} data-testid="search-icon">⌕</span>
       <input
         ref={inputRef}
         type="search"
