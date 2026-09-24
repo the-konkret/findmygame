@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getSteamAppId } from '../api/rawg';
 import { getGameDeals, type GameDeals } from '../api/cheapshark';
+import type { GameRef } from '../api/userData';
+import PriceAlertBox from './PriceAlertBox';
 
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const monthYear = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' });
@@ -11,7 +13,8 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: GameDeals };
 
-export default function DealsPanel({ gameId, gameName }: { gameId: string; gameName: string }) {
+export default function DealsPanel({ gameId, game }: { gameId: string; game: GameRef }) {
+  const gameName = game.name;
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0); // "Try again" bumps this, which re-runs the lookup
 
@@ -54,7 +57,12 @@ export default function DealsPanel({ gameId, gameName }: { gameId: string; gameN
         </p>
       )}
 
-      {state.kind === 'ready' && <DealsList data={state.data} />}
+      {state.kind === 'ready' && (
+        <>
+          <DealsList data={state.data} />
+          <PriceAlertBox game={game} cheapsharkId={state.data.cheapsharkId} bestPrice={state.data.deals[0].price} />
+        </>
+      )}
 
       <p className="deals-footnote">
         PC stores, prices in USD, via{' '}

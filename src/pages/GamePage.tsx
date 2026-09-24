@@ -88,7 +88,7 @@ export default function GamePage() {
         </div>
 
         <div className="game-sidebar">
-          <DealsPanel gameId={id} gameName={game.name} />
+          <DealsPanel gameId={id} game={game} />
 
           <aside className="panel game-facts" data-testid="game-facts">
             <h2>Details</h2>

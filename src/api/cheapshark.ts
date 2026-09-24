@@ -38,6 +38,8 @@ export interface Deal {
 }
 
 export interface GameDeals {
+  /** CheapShark's own ID for the game (price alerts use it). */
+  cheapsharkId: string;
   title: string;
   deals: Deal[]; // cheapest first
   lowestEver: { price: number; date: Date } | null;
@@ -138,8 +140,40 @@ export async function getGameDeals(
 
   const ever = lookup.cheapestPriceEver;
   return {
+    cheapsharkId: gameId,
     title: lookup.info.title,
     deals,
     lowestEver: ever?.price ? { price: Number(ever.price), date: new Date(ever.date * 1000) } : null,
   };
+}
+
+export interface BestPrice {
+  price: number;
+  storeName: string;
+}
+
+/**
+ * Today's cheapest price for several games at once (by CheapShark ID), in as few requests as possible
+ * (CheapShark looks up to 25 games per request). Games with no current price are left out.
+ */
+export async function getBestPrices(cheapsharkIds: string[], signal?: AbortSignal): Promise<Map<string, BestPrice>> {
+  const result = new Map<string, BestPrice>();
+  const ids = [...new Set(cheapsharkIds)];
+  if (ids.length === 0) return result;
+
+  const stores = await getStores();
+  for (let i = 0; i < ids.length; i += 25) {
+    const chunk = ids.slice(i, i + 25);
+    const found = await get<Record<string, CsGameLookup>>('/games', { ids: chunk.join(',') }, signal);
+    for (const id of chunk) {
+      const deals = (found[id]?.deals ?? []).filter((d) => stores.get(d.storeID)?.isActive !== 0);
+      if (deals.length === 0) continue;
+      const best = deals.reduce((a, b) => (Number(b.price) < Number(a.price) ? b : a));
+      result.set(id, {
+        price: Number(best.price),
+        storeName: stores.get(best.storeID)?.storeName ?? `Store ${best.storeID}`,
+      });
+    }
+  }
+  return result;
 }

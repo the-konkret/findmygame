@@ -322,6 +322,27 @@ img.fade-in.loaded { opacity: 1; }
 .deal-price { font-weight: 600; font-size: 14px; }
 
 .deals-footnote { margin: 12px 0 0; color: var(--text-dim); font-size: 12px; }
+
+/* Price alert, under the deals list */
+.price-alert {
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.price-alert .icon { color: var(--accent); vertical-align: -3px; flex-shrink: 0; }
+.price-alert-text { margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.5; }
+.price-alert-text strong { color: var(--text); }
+.price-alert-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.price-alert-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.price-alert-field {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 0 10px;
+}
+.price-alert-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.2); }
+.price-alert-field input {
+  width: 80px; padding: 8px 0; background: transparent; border: none; outline: none;
+  color: var(--text); font-size: 16px; /* 16px stops iPhones zooming in */
+}
+.btn-alert { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; }
 .deals-error { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 
 .game-facts dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; }
@@ -388,6 +409,49 @@ img.fade-in.loaded { opacity: 1; }
   color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
 }
 .account-item:hover, .account-item:focus-visible { background: rgba(232, 101, 10, 0.14); color: var(--text); outline: none; }
+
+/* Notification bell (next to the cog / picture) */
+.bell-menu { position: relative; }
+.nav-bell { position: relative; background: none; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+.nav-bell:hover { color: var(--accent); }
+.nav-bell.active { color: var(--accent); border-color: var(--border); }
+.bell-badge {
+  position: absolute; top: 1px; right: 0;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+  background: var(--accent); color: #000; font-size: 11px; font-weight: 700; line-height: 17px; text-align: center;
+  box-shadow: 0 0 0 2px var(--bg, #0d0d0f);
+}
+.bell-dropdown {
+  position: absolute; right: -50px; top: 100%; z-index: 30;
+  width: min(360px, calc(100vw - 24px)); margin-top: 8px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+.bell-head { padding: 8px 10px 6px; font-size: 13px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.bell-empty { padding: 18px 16px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bell-empty-icon { color: var(--accent); opacity: 0.8; }
+.bell-empty-title { margin: 0; font-weight: 600; font-size: 15px; }
+.bell-empty .small { line-height: 1.5; }
+.bell-list { list-style: none; margin: 0; padding: 0; max-height: min(420px, 70vh); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.bell-item { position: relative; border-radius: 8px; }
+.bell-item:hover { background: rgba(232, 101, 10, 0.1); }
+.bell-item.unread { background: rgba(232, 101, 10, 0.08); }
+.bell-link { display: flex; align-items: flex-start; gap: 10px; padding: 10px 34px 10px 10px; color: var(--text); }
+.bell-link:hover { color: var(--text); }
+.bell-thumb { width: 56px; height: 32px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--border); margin-top: 2px; }
+.bell-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 14px; line-height: 1.35; }
+.bell-title strong { color: var(--text); }
+.bell-price { color: #d4d4d8; font-size: 13px; }
+.bell-price strong { color: var(--accent); }
+.bell-price.back-up strong { color: var(--text); } /* price has gone back up: not a deal any more */
+.bell-time { color: var(--text-dim); font-size: 12px; }
+.bell-dot { position: absolute; left: 3px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--accent); }
+.bell-dismiss {
+  position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 6px;
+  border: none; background: none; color: var(--text-dim); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.bell-dismiss:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+.bell-error { padding: 6px 10px 8px; font-size: 13px; }
 
 /* Profile picture instead of the cog */
 .nav-avatar { overflow: hidden; padding: 0; border: 2px solid var(--border); }
@@ -515,6 +579,8 @@ img.fade-in.loaded { opacity: 1; }
   .game-title { font-size: 26px; margin-top: 48px; }
   .panel { padding: 16px; }
   .nav { gap: 10px; }
+  /* Notifications: full width under the top bar, so nothing hangs off the screen */
+  .bell-dropdown { position: fixed; left: 12px; right: 12px; top: 58px; width: auto; }
   .topbar { flex-wrap: wrap; row-gap: 10px; }
   .topbar-search { order: 3; flex-basis: 100%; max-width: none; }
   .topbar-search.hide-on-phone { display: none; }

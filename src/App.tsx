@@ -9,6 +9,7 @@ import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import SearchBox from './components/SearchBox';
 import AccountMenu from './components/AccountMenu';
+import NotificationBell from './components/NotificationBell';
 import { BackIcon, CogIcon, GiftIcon, StarIcon } from './components/Icons';
 
 export default function App() {
@@ -108,6 +109,7 @@ function UserMenu() {
         <GiftIcon size={16} />
         <span className="nav-label">Wishlist</span>
       </NavLink>
+      <NotificationBell />
       <AccountMenu
         isAvatar={!!avatarUrl}
         icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}

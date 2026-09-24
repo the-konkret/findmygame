@@ -78,6 +78,15 @@ One-time setup in the Cloudflare dashboard (**Workers & Pages** → the `findmyg
 
 After that, every `git push` to `main` rebuilds and redeploys the site. Its address is `https://findmygame.<your-subdomain>.workers.dev`.
 
+## Price alerts and the notification bell
+
+On a game page (Deals box), logged-in users can set "Notify me when the price drops" with their own price.
+While FindMyGame is open, the app checks prices (on opening, every 30 minutes, and when you come back to the tab);
+when a game reaches your price, it appears under the bell in the top bar, with today's price.
+There are no emails and nothing runs on the server: notifications appear the next time you open the site.
+
+One-time setup: run `supabase/price-alerts.sql` in the Supabase SQL Editor.
+
 ## Project layout
 
 ```
@@ -94,6 +103,12 @@ src/pages/GameListPage.tsx   shared page for My favourites and Wishlist
 supabase/schema.sql          database tables and security rules
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
+src/api/priceAlerts.ts       price alerts and the price check (Supabase + CheapShark)
+src/hooks/useNotifications.ts   the bell's notifications: checks prices every 30 min while the site is open
+src/components/NotificationBell.tsx   the bell and its dropdown
+src/components/PriceAlertBox.tsx      "Notify me when the price drops", in the Deals box
+supabase/price-alerts.sql    price alerts table and rules
+public/favicon.svg           tab icon (plus favicon-32.png and apple-touch-icon.png)
 src/styles.css               theme colours and layout
 playwright.config.ts         test settings (which site, browsers, reports)
 allurerc.mjs                 Allure report settings
