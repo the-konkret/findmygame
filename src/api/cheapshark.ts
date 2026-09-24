@@ -45,40 +45,105 @@ export interface GameDeals {
   lowestEver: { price: number; date: Date } | null;
 }
 
-const UNAVAILABLE = 'Store prices are unavailable right now (CheapShark isn\'t responding). Try again in a minute.';
+const UNAVAILABLE = "Store prices are unavailable right now (CheapShark isn't responding). Try again in a minute.";
+const BUSY = 'CheapShark has had too many price requests from you for now. Try again in a few minutes.';
 
-function wait(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener('abort', () => {
-      clearTimeout(timer);
-      reject(new DOMException('Aborted', 'AbortError'));
-    });
-  });
+// ---- Asking CheapShark as little as possible ----
+// CheapShark is free and limits how often one visitor may ask (it answers "429 Too Many Requests", and
+// blocks for longer if you keep asking). So every answer is remembered (in this browser, across reloads)
+// for a while, and identical requests made at the same moment share one trip.
+
+const MINUTE = 60 * 1000;
+const DAY = 24 * 60 * MINUTE;
+const STORAGE_PREFIX = 'fmg-cs:';
+
+interface Remembered { at: number; data: unknown }
+const memory = new Map<string, Remembered>();
+const inFlight = new Map<string, Promise<unknown>>();
+
+function recall(url: string, maxAge: number): unknown | undefined {
+  let hit = memory.get(url);
+  if (!hit) {
+    try {
+      const saved = localStorage.getItem(STORAGE_PREFIX + url);
+      if (saved) hit = JSON.parse(saved) as Remembered;
+    } catch {
+      // storage blocked or full: just ask again
+    }
+  }
+  if (!hit || Date.now() - hit.at > maxAge) return undefined;
+  memory.set(url, hit);
+  return hit.data;
 }
 
-/** One request to CheapShark. If it fails (service down, or busy), waits a moment and tries once more. */
-async function get<T>(path: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
-  const url = `${BASE_URL}${path}?${new URLSearchParams(params)}`;
-  for (let attempt = 1; ; attempt++) {
+function remember(url: string, data: unknown): void {
+  const entry = { at: Date.now(), data };
+  memory.set(url, entry);
+  try {
+    localStorage.setItem(STORAGE_PREFIX + url, JSON.stringify(entry));
+  } catch {
+    // storage full: tidy up our old entries, it'll be remembered in memory anyway
     try {
-      // When CheapShark is down or has had too many requests, the browser often only says "Failed to fetch".
-      const res = await fetch(url, { signal });
-      if (res.ok) return (await res.json()) as T;
-      if (res.status !== 429 && res.status < 500) throw new Error(`Price lookup failed (${res.status})`);
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') throw err;
-      if ((err as Error).message.startsWith('Price lookup failed')) throw err;
+      Object.keys(localStorage).filter((k) => k.startsWith(STORAGE_PREFIX)).forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* ignore */
     }
-    if (attempt >= 2) throw new Error(UNAVAILABLE);
-    await wait(1500, signal);
   }
 }
 
-// Store names rarely change, so fetch them once per app session.
+function aborted(): DOMException {
+  return new DOMException('Aborted', 'AbortError');
+}
+
+/** The actual trip to CheapShark. A network hiccup gets one more try after 2 s; "too many requests" never does. */
+async function fetchJson(url: string): Promise<unknown> {
+  for (let attempt = 1; ; attempt++) {
+    let res: Response;
+    try {
+      res = await fetch(url);
+    } catch {
+      // Service down (or blocked): the browser only says "Failed to fetch".
+      if (attempt >= 2) throw new Error(UNAVAILABLE);
+      await new Promise((r) => setTimeout(r, 2000));
+      continue;
+    }
+    if (res.ok) return res.json();
+    if (res.status === 429) throw new Error(BUSY);
+    if (res.status >= 500) throw new Error(UNAVAILABLE);
+    throw new Error(`Price lookup failed (${res.status})`);
+  }
+}
+
+/**
+ * One CheapShark request, answered from memory when a recent enough answer exists.
+ * maxAge: how old a remembered answer may be. If `signal` is aborted (you left the page), this throws
+ * AbortError, but the trip itself finishes and is remembered for next time.
+ */
+async function get<T>(path: string, params: Record<string, string>, signal?: AbortSignal, maxAge = 10 * MINUTE): Promise<T> {
+  const url = `${BASE_URL}${path}?${new URLSearchParams(params)}`;
+  const known = recall(url, maxAge);
+  if (known !== undefined) return known as T;
+  if (signal?.aborted) throw aborted();
+
+  let trip = inFlight.get(url);
+  if (!trip) {
+    trip = fetchJson(url)
+      .then((data) => {
+        remember(url, data);
+        return data;
+      })
+      .finally(() => inFlight.delete(url));
+    inFlight.set(url, trip);
+  }
+  const data = await trip;
+  if (signal?.aborted) throw aborted();
+  return data as T;
+}
+
+// Store names rarely change: remembered for a day.
 let storesPromise: Promise<Map<string, CsStore>> | null = null;
 function getStores(): Promise<Map<string, CsStore>> {
-  storesPromise ??= get<CsStore[]>('/stores', {})
+  storesPromise ??= get<CsStore[]>('/stores', {}, undefined, DAY)
     .then((list) => new Map(list.map((s) => [s.storeID, s])))
     .catch((err) => {
       storesPromise = null; // allow a retry next time
@@ -99,10 +164,10 @@ function normalize(title: string): string {
 /** Finds CheapShark's ID for a game: by Steam app ID when we know it (exact), otherwise by title. */
 async function findGameId(name: string, steamAppId: string | null, signal?: AbortSignal): Promise<string | null> {
   if (steamAppId) {
-    const bySteam = await get<CsGameListItem[]>('/games', { steamAppID: steamAppId, limit: '1' }, signal);
+    const bySteam = await get<CsGameListItem[]>('/games', { steamAppID: steamAppId, limit: '1' }, signal, 7 * DAY);
     if (bySteam.length > 0) return bySteam[0].gameID;
   }
-  const byTitle = await get<CsGameListItem[]>('/games', { title: name, limit: '20' }, signal);
+  const byTitle = await get<CsGameListItem[]>('/games', { title: name, limit: '20' }, signal, 7 * DAY);
   const wanted = normalize(name);
   const match = byTitle.find((g) => normalize(g.external) === wanted);
   return match ? match.gameID : null;

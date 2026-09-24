@@ -20,6 +20,11 @@ create table if not exists public.price_alerts (
   primary key (user_id, game_id)
 );
 
+-- If an older version of this table already exists (the email-alert version), bring it up to date.
+alter table public.price_alerts add column if not exists notified_store text;
+alter table public.price_alerts add column if not exists read_at timestamptz;
+alter table public.price_alerts drop column if exists email;
+
 -- Each person sees and changes only their own alerts.
 alter table public.price_alerts enable row level security;
 
