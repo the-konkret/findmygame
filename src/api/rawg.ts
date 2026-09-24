@@ -51,17 +51,19 @@ async function request<T>(path: string, params: Record<string, string>, signal?:
 
 /**
  * Search games by title, best matches first.
- * RAWG's own order is either "relevance" (which puts tiny unknown games named exactly "witcher" first)
- * or "popularity" (which puts GTA V above Portal 2 for "portal 2"). So we ask for the most popular
- * matches and re-rank them here: titles containing every word you typed come first, then popularity.
+ * RAWG's two orders each go wrong on their own: "relevance" puts tiny unknown games named exactly
+ * "witcher" first, and "popularity" matches ANY word you typed, so for "earthworm jim 3" its top 40
+ * is Witcher 3, Dark Souls III, Far Cry 3… and no Earthworm Jim at all. So we ask for both at once,
+ * merge them, and rank here: how much of what you typed is in the title first, then popularity.
  */
 export async function searchGames(term: string, signal?: AbortSignal, limit = 20): Promise<GameSummary[]> {
-  const data = await request<Paged<GameSummary>>(
-    '/games',
-    { search: term, search_precise: 'true', ordering: '-added', page_size: '40' },
-    signal,
-  );
-  return rankByTitleMatch(data.results, term).slice(0, limit);
+  const ask = (extra: Record<string, string>) =>
+    request<Paged<GameSummary>>('/games', { search: term, search_precise: 'true', page_size: '40', ...extra }, signal);
+  const [popular, relevant] = await Promise.all([ask({ ordering: '-added' }), ask({})]);
+
+  const seen = new Set<number>();
+  const merged = [...popular.results, ...relevant.results].filter((g) => !seen.has(g.id) && seen.add(g.id));
+  return rankByTitleMatch(merged, term).slice(0, limit);
 }
 
 // Roman numerals as digits, so "baldurs gate 3" finds "Baldur's Gate III". ("i" is left alone: "I Am Bread".)
@@ -83,29 +85,37 @@ function normalize(text: string): string {
 export function rankByTitleMatch<T extends { name: string; added?: number }>(games: T[], term: string): T[] {
   const query = normalize(term);
   const queryWords = query.split(' ').filter(Boolean);
+  const typedLetters = queryWords.reduce((n, w) => n + w.length, 0);
 
-  const score = (game: T): number => {
+  const judge = (game: T) => {
     const name = normalize(game.name);
     const nameWords = name.split(' ');
     const initials = nameWords.map((w) => w[0]).join(''); // "grand theft auto 5" → "gta5"
-    // Every typed word starts some word of the title ("wit" matches "witcher" while you type),
-    // or a single typed word is the start of the title's initials ("gta", "cod").
-    const matches =
-      queryWords.every((q) => nameWords.some((w) => w.startsWith(q))) ||
-      (queryWords.length === 1 && query.length >= 2 && initials.startsWith(query));
-    let points = 0;
-    if (matches) points += 3;
+    // A typed word counts when it starts some word of the title ("wit" matches "witcher" while you type).
+    const found = queryWords.filter((q) => nameWords.some((w) => w.startsWith(q)));
+    // A single typed word can also be the start of the title's initials ("gta", "cod").
+    const byInitials = queryWords.length === 1 && query.length >= 2 && initials.startsWith(query);
+    // How much of what you typed is in the title, by letters: for "earthworm jim 3", Earthworm Jim 2
+    // covers 12 of 13 letters, The Witcher 3 only 1 of 13.
+    const coverage = byInitials ? 1 : typedLetters ? found.reduce((n, w) => n + w.length, 0) / typedLetters : 0;
+
+    let points = 3 * coverage;
+    if (byInitials || found.length === queryWords.length) points += 1; // every word found
     if (name.startsWith(query)) points += 1;
     if (name === query) points += 1;
     // Popularity adds up to ~5 points: 10 users → 1, 1,000 → 3, 100,000 → 5.
     points += Math.log10((game.added ?? 0) + 1);
-    return points;
+    return { coverage, points };
   };
 
-  return games
-    .map((game, index) => ({ game, index, points: score(game) }))
-    .sort((a, b) => b.points - a.points || a.index - b.index)
-    .map((x) => x.game);
+  const ranked = games
+    .map((game, index) => ({ game, index, ...judge(game) }))
+    .sort((a, b) => b.points - a.points || a.index - b.index);
+
+  // If some titles match most of what you typed, drop the ones that only share a stray word or number
+  // (no Witcher 3 when you asked for Earthworm Jim 3).
+  const goodMatchExists = ranked.some((x) => x.coverage >= 0.5);
+  return ranked.filter((x) => !goodMatchExists || x.coverage >= 0.5).map((x) => x.game);
 }
 
 /**

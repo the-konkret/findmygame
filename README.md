@@ -10,8 +10,8 @@ Built with React + TypeScript + Vite and hosted for free on Cloudflare Workers.
 - [x] Discounts across PC stores (CheapShark)
 - [x] Website hosting on Cloudflare Workers, API key kept on the server
 - [x] User accounts with favourites and notes (Supabase)
-- [x] Playwright tests with an Allure report (steps and screenshots)
-- [x] GitHub Actions runs the tests on every push and publishes the report
+- [ ] Playwright tests with an Allure report (removed for now, to be rewritten)
+- [ ] GitHub Actions runs the tests on every push (removed for now)
 - [ ] Later: installable on phones (PWA)
 
 ## Run it on your computer (Windows)
@@ -42,56 +42,9 @@ To set up your own copy, copy `.env.example` to `.env` and add a free key from h
 
 ## Automated tests (Playwright + Allure)
 
-End-to-end tests drive a real Chrome browser through the site, just like a person would.
-Every test is split into named steps, and each step ends with a screenshot, so the report shows what the page looked like at every point.
-
-First time only:
-
-```powershell
-npm install
-npx playwright install chromium
-```
-
-| Command | What it does |
-|---|---|
-| `npm test` | Runs all tests against your computer (starts `npm run dev` if it isn't running) |
-| `npm run test:live` | Runs all tests against the live website |
-| `npm run test:ui` | Opens Playwright's visual runner: pick tests, watch them run, step through them |
-| `npm run report` | Builds the Allure report (steps and screenshots) and opens it in your browser |
-| `npx playwright show-report` | Opens Playwright's own HTML report (includes traces for failed tests) |
-
-What's covered:
-
-| File | Tests |
-|---|---|
-| `tests/search.spec.ts` | suggestions dropdown (mouse and keyboard), full results and order, "no games found", results kept after going back, logo returns home, "Surprise me" |
-| `tests/game-page.spec.ts` | game summary, CheapShark prices, log-in prompts for visitors, unknown pages, skeletons while pictures load |
-| `tests/accounts.spec.ts` | sign up, account menu on hover (Settings / Log out), log out lands on home and logging back in stays there, cog opens the account page (email there, not in the top bar), log out, log in, wrong password, protected favourites page; profile picture upload (shown in the top bar instead of the cog), too-big and wrong files refused, remove |
-| `tests/favourites-and-notes.spec.ts` | favourite star in the picture corner: add, list, remove (no flicker, ★ on search results); wishlist: add, Wishlist page, remove; save, reload and delete a note |
-| `tests/mobile.spec.ts` | on a phone-sized screen: nothing wider than the screen, results as a list, game page section order, top bar fits, no zoom when tapping text boxes |
-| `tests/auth.setup.ts` | runs first: creates a fresh test account for the logged-in tests |
-
-Each run signs up new throwaway accounts (`fmg-test-...@mailinator.com`), so runs never interfere with each other.
-You can delete old test users in Supabase under **Authentication → Users**.
-The helper `step()` in `tests/support/step.ts` adds the screenshot to each step.
-
-### Tests on GitHub (GitHub Actions)
-
-`.github/workflows/tests.yml` runs the tests on GitHub's computers (free for public repositories):
-
-| When | What is tested |
-|---|---|
-| Every push to `main`, every pull request | the code in that commit, on a temporary dev server |
-| Mondays and Thursdays, 06:00 UTC | the live website (this also keeps the free Supabase project from pausing) |
-| By hand: **Actions → Tests → Run workflow** | your choice: `live` or `local` |
-
-The latest Allure report is published at **https://the-konkret.github.io/findmygame/**.
-Both reports can also be downloaded from each run's page under **Artifacts** (kept for 14 days).
-
-One-time setup on GitHub:
-
-1. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-2. **Settings → Secrets and variables → Actions → New repository secret**: name `RAWG_API_KEY`, value your RAWG key.
+The tests and the GitHub Actions workflow were removed for now; new ones will be written once the app is more or less finished.
+The tools are still set up (`playwright.config.ts`, `allurerc.mjs`, the `test` and `report` scripts), and the old tests
+can be looked up in the Git history (the commit before "Remove tests for now").
 
 ## Accounts, favourites and notes (Supabase, free)
 
@@ -110,7 +63,7 @@ One-time setup:
    The site accepts pictures up to 1 MB, crops them to a square and shrinks them to 256×256 (~20–40 KB) before uploading.
 6. For the wishlist: run `supabase/wishlist.sql` the same way. It creates the `wishlist` table with the same rules as favourites.
 
-Free-plan note: Supabase pauses a project after 7 days without activity. The twice-weekly scheduled test run keeps it awake.
+Free-plan note: Supabase pauses a project after 7 days without activity. (The scheduled test run used to keep it awake; that has been removed for now.)
 
 ## Deploying (Cloudflare Workers, free)
 
@@ -142,8 +95,6 @@ supabase/schema.sql          database tables and security rules
 src/api/rawg.ts              game data (through /api/rawg)
 src/api/cheapshark.ts        store prices and discounts
 src/styles.css               theme colours and layout
-tests/                       Playwright end-to-end tests
-.github/workflows/tests.yml  runs the tests on GitHub and publishes the report
 playwright.config.ts         test settings (which site, browsers, reports)
 allurerc.mjs                 Allure report settings
 worker/index.ts              server code on Cloudflare: adds the secret RAWG key to /api/rawg requests
