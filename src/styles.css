@@ -50,7 +50,7 @@ a:hover { color: var(--accent-hover); }
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
-.brand { color: var(--text); font-weight: 700; font-size: 18px; letter-spacing: 0.3px; }
+.brand { color: var(--text); font-weight: 700; font-size: 18px; letter-spacing: 0.3px; white-space: nowrap; }
 .brand:hover { color: var(--text); }
 .brand-mark { color: var(--accent); margin-right: 6px; }
 .brand-accent { color: var(--accent); }
@@ -170,6 +170,27 @@ a:hover { color: var(--accent-hover); }
 .card:active { border-color: var(--accent); }
 .card-image { position: relative; aspect-ratio: 16 / 9; background: var(--surface-2); }
 .card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Alerts page: game tiles with the price you set */
+.alert-card-wrap { position: relative; display: flex; }
+.alert-card-wrap > .card { flex: 1; min-width: 0; }
+.alert-target {
+  position: absolute; left: 10px; bottom: 10px; z-index: 1;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--accent); color: #000; font-weight: 700; font-size: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.alert-your-price { color: var(--text); }
+.alert-card .alert-state { margin: 6px 0 0; font-size: 13px; color: var(--text-dim); }
+.alert-card .alert-state.reached { color: var(--accent); font-weight: 600; }
+.alert-card.reached { border-color: rgba(232, 101, 10, 0.55); }
+.alert-remove {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border); background: rgba(11, 11, 12, 0.8); color: var(--text);
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.alert-remove:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ---------- Skeletons: shimmering placeholders while pictures and data load ---------- */
 .skeleton {
@@ -371,7 +392,12 @@ img.fade-in.loaded { opacity: 1; }
 .search-box.compact .search-icon { left: 13px; font-size: 18px; }
 
 /* Back arrow in the top bar: phones only (on a computer the browser's Back button is always visible) */
-.topbar-left { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.topbar-left { display: flex; align-items: center; gap: 4px; min-width: 0; flex-shrink: 0; }
+/* Mid-size screens (small laptops, tablets): the top-bar links show just their icons, so the logo and search fit. */
+@media (max-width: 1024px) {
+  .nav-label { display: none; }
+  .nav-link { padding: 8px 5px; }
+}
 .topbar-back {
   display: none; place-items: center; width: 36px; height: 36px; margin-left: -8px;
   background: none; border: none; border-radius: 50%; color: var(--text); cursor: pointer;
@@ -572,13 +598,17 @@ img.fade-in.loaded { opacity: 1; }
   .badge-fav .icon { width: 12px; height: 12px; }
   .card-body { padding: 10px 12px; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
   .card-title { font-size: 15px; }
+  .alert-card .card-body { padding-right: 44px; } /* room for the × */
   .card-platforms { margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .game-hero-shade { min-height: 240px; padding: 16px; }
   .game-hero-corner { top: 12px; right: 12px; }
   .fav-star { width: 42px; height: 42px; }
   .game-title { font-size: 26px; margin-top: 48px; }
   .panel { padding: 16px; }
-  .nav { gap: 10px; }
+  /* Phones: back arrow, logo and all the top-bar icons on one row */
+  .nav { gap: 2px; }
+  .topbar { column-gap: 8px; }
+  .nav-icon { width: 34px; height: 34px; }
   /* Notifications: full width under the top bar, so nothing hangs off the screen */
   .bell-dropdown { position: fixed; left: 12px; right: 12px; top: 58px; width: auto; }
   .topbar { flex-wrap: wrap; row-gap: 10px; }
@@ -586,7 +616,7 @@ img.fade-in.loaded { opacity: 1; }
   .topbar-search.hide-on-phone { display: none; }
   .topbar-back { display: grid; }
   .avatar-row { flex-direction: column; align-items: flex-start; }
-  .brand { font-size: 17px; }
+  .brand { font-size: 16px; }
   /* Top bar: "★ My favourites" becomes just "★" so logo, favourites and Log out fit on one line. */
   .nav-label { display: none; }
   .nav-link { padding: 8px 6px; font-size: 15px; }

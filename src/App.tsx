@@ -5,12 +5,13 @@ import GamePage from './pages/GamePage';
 import LoginPage from './pages/LoginPage';
 import FavouritesPage from './pages/FavouritesPage';
 import WishlistPage from './pages/WishlistPage';
+import AlertsPage from './pages/AlertsPage';
 import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import SearchBox from './components/SearchBox';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
-import { BackIcon, CogIcon, GiftIcon, StarIcon } from './components/Icons';
+import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/favourites" element={<FavouritesPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<p className="status">Page not found. <Link to="/">Go to search</Link></p>} />
         </Routes>
@@ -108,6 +110,10 @@ function UserMenu() {
       <NavLink to="/wishlist" className="nav-link nav-favourites" aria-label="Wishlist" data-testid="nav-wishlist">
         <GiftIcon size={16} />
         <span className="nav-label">Wishlist</span>
+      </NavLink>
+      <NavLink to="/alerts" className="nav-link nav-favourites" aria-label="Alerts" data-testid="nav-alerts">
+        <TagIcon size={16} />
+        <span className="nav-label">Alerts</span>
       </NavLink>
       <NotificationBell />
       <AccountMenu
