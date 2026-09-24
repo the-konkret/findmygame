@@ -43,11 +43,34 @@ export interface GameDeals {
   lowestEver: { price: number; date: Date } | null;
 }
 
+const UNAVAILABLE = 'Store prices are unavailable right now (CheapShark isn\'t responding). Try again in a minute.';
+
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+  });
+}
+
+/** One request to CheapShark. If it fails (service down, or busy), waits a moment and tries once more. */
 async function get<T>(path: string, params: Record<string, string>, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}?${new URLSearchParams(params)}`, { signal });
-  if (res.status === 429) throw new Error('Price service is busy. Try again in a minute.');
-  if (!res.ok) throw new Error(`Price lookup failed (${res.status})`);
-  return (await res.json()) as T;
+  const url = `${BASE_URL}${path}?${new URLSearchParams(params)}`;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      // When CheapShark is down or has had too many requests, the browser often only says "Failed to fetch".
+      const res = await fetch(url, { signal });
+      if (res.ok) return (await res.json()) as T;
+      if (res.status !== 429 && res.status < 500) throw new Error(`Price lookup failed (${res.status})`);
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') throw err;
+      if ((err as Error).message.startsWith('Price lookup failed')) throw err;
+    }
+    if (attempt >= 2) throw new Error(UNAVAILABLE);
+    await wait(1500, signal);
+  }
 }
 
 // Store names rarely change, so fetch them once per app session.

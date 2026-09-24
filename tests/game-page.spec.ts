@@ -42,6 +42,30 @@ test.describe('Game page', () => {
     });
   });
 
+  test('explains when CheapShark is down, and "Try again" works once it is back', async ({ page }) => {
+    let cheapsharkDown = true;
+    // Pretend CheapShark is unreachable (the browser then reports "Failed to fetch").
+    await page.route('**/www.cheapshark.com/api/**', (route) => (cheapsharkDown ? route.abort('failed') : route.continue()));
+
+    await step(page, 'Open The Witcher 3 page while CheapShark is down', async () => {
+      await page.goto(WITCHER_3);
+      await expect(page.getByTestId('game-title')).toBeVisible();
+    });
+
+    await step(page, 'After one automatic retry, a clear message and a "Try again" button appear', async () => {
+      await expect(page.getByTestId('deals-error')).toHaveText(/Store prices are unavailable right now/);
+      await expect(page.getByTestId('deals-error')).not.toContainText('Failed to fetch');
+      await expect(page.getByTestId('deals-retry')).toBeVisible();
+    });
+
+    await step(page, 'CheapShark comes back: click "Try again" and the prices load', async () => {
+      cheapsharkDown = false;
+      await page.getByTestId('deals-retry').click();
+      await expect(page.getByTestId('deals-best')).toContainText('$', { timeout: 20_000 });
+      await expect(page.getByTestId('deals-error')).toHaveCount(0);
+    });
+  });
+
   test('asks logged-out visitors to log in for favourites and notes', async ({ page }) => {
     await step(page, 'Open a game page without logging in', async () => {
       await page.goto(WITCHER_3);

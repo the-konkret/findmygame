@@ -13,6 +13,7 @@ type State =
 
 export default function DealsPanel({ gameId, gameName }: { gameId: string; gameName: string }) {
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const [attempt, setAttempt] = useState(0); // "Try again" bumps this, which re-runs the lookup
 
   useEffect(() => {
     const controller = new AbortController();
@@ -29,7 +30,7 @@ export default function DealsPanel({ gameId, gameName }: { gameId: string; gameN
     });
 
     return () => controller.abort();
-  }, [gameId, gameName]);
+  }, [gameId, gameName, attempt]);
 
   return (
     <aside className="panel deals" data-testid="deals-panel">
@@ -37,7 +38,14 @@ export default function DealsPanel({ gameId, gameName }: { gameId: string; gameN
 
       {state.kind === 'loading' && <p className="muted" data-testid="deals-loading">Checking store prices…</p>}
 
-      {state.kind === 'error' && <p className="error-text" data-testid="deals-error">{state.message}</p>}
+      {state.kind === 'error' && (
+        <div className="deals-error">
+          <p className="error-text" data-testid="deals-error">{state.message}</p>
+          <button type="button" className="btn-ghost" onClick={() => setAttempt((n) => n + 1)} data-testid="deals-retry">
+            Try again
+          </button>
+        </div>
+      )}
 
       {state.kind === 'not-found' && (
         <p className="muted" data-testid="deals-none">
