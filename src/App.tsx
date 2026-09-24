@@ -9,7 +9,7 @@ import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import SearchBox from './components/SearchBox';
 import AccountMenu from './components/AccountMenu';
-import { CogIcon, GiftIcon, StarIcon } from './components/Icons';
+import { BackIcon, CogIcon, GiftIcon, StarIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -21,9 +21,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
-          <span className="brand-mark">◉</span> FindMy<span className="brand-accent">Game</span>
-        </Link>
+        <div className="topbar-left">
+          {pathname !== '/' && <TopBarBack />}
+          <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
+            <span className="brand-mark">◉</span> FindMy<span className="brand-accent">Game</span>
+          </Link>
+        </div>
         {/* The home page has its own big search box; every other page gets one in the top bar.
             key={pathname} empties it whenever you move to another page. */}
         {pathname !== '/' && <HeaderSearch key={pathname} hideOnPhone={pathname === '/login'} />}
@@ -118,4 +121,22 @@ function NavAvatar({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <CogIcon />;
   return <img src={src} alt="" className="nav-avatar-img" onError={() => setFailed(true)} data-testid="nav-avatar" />;
+}
+
+/** Back arrow for phones: to the previous page, or home if this page was opened directly (e.g. from a link). */
+function TopBarBack() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const cameFromThisSite = location.key !== 'default';
+  return (
+    <button
+      type="button"
+      className="topbar-back"
+      aria-label="Back"
+      onClick={() => (cameFromThisSite ? navigate(-1) : navigate('/'))}
+      data-testid="topbar-back"
+    >
+      <BackIcon />
+    </button>
+  );
 }

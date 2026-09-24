@@ -46,6 +46,17 @@ export function CogIcon({ size = 20, className = '' }: IconProps) {
   );
 }
 
+/** Arrow pointing left (back). */
+export function BackIcon({ size = 22, className = '' }: IconProps) {
+  return (
+    <svg className={`icon ${className}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5" />
+      <path d="M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 /** Gift box (wishlist). */
 export function GiftIcon({ size = 16, className = '' }: IconProps) {
   return (

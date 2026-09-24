@@ -167,6 +167,7 @@ test.describe('Search', () => {
       await expect(page.getByTestId('game-title')).toHaveText('Portal 2');
       await expect(page.getByTestId('header-search')).toBeVisible();
       await expect(page.getByTestId('search-input')).not.toBeFocused();
+      await expect(page.getByTestId('topbar-back')).toBeHidden(); // back arrow is for phones only
     });
 
     await step(page, 'Type "hades" in the top bar and pick it from the suggestions', async () => {

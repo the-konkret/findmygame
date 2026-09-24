@@ -74,6 +74,19 @@ test.describe('Phone layout', () => {
       expect(about).toBeLessThan(details);
     });
 
+    await step(page, 'Check the back arrow is in the top bar, and takes you back', async () => {
+      await expect(page.getByTestId('topbar-back')).toBeVisible();
+      await page.goto('/?q=witcher');
+      await page.getByTestId('game-card').first().click();
+      await expect(page.getByTestId('game-title')).toBeVisible();
+      await page.getByTestId('topbar-back').tap();
+      await expect(page).toHaveURL(/\?q=witcher$/);
+      await expect(page.getByTestId('topbar-back')).toBeVisible(); // results page has one too
+      await page.goto('/');
+      await expect(page.getByTestId('topbar-back')).toHaveCount(0); // not on the home page
+      await page.goto('/game/3328');
+    });
+
     await step(page, 'Check the top-bar search sits on its own full-width row', async () => {
       const search = (await page.getByTestId('header-search').boundingBox())!;
       const logo = (await page.getByTestId('brand-link').boundingBox())!;

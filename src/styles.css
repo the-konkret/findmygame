@@ -330,7 +330,9 @@ img.fade-in.loaded { opacity: 1; }
    deals, your notes, the description, then the details. */
 @media (max-width: 860px) {
   .game-body { display: flex; flex-direction: column; }
-  .game-main, .game-sidebar { display: contents; }
+  /* (more specific than the .game-main rule further down, which otherwise wins and breaks the order) */
+  .game-body > .game-main, .game-body > .game-sidebar { display: contents; }
+  .game-body { align-items: stretch; } /* every box full width */
   .game-body .deals { order: 1; }
   .game-body .notes { order: 2; }
   .game-body .game-description { order: 3; }
@@ -343,6 +345,15 @@ img.fade-in.loaded { opacity: 1; }
 .search-box.compact { max-width: none; }
 .search-box.compact input { padding: 8px 14px 8px 38px; font-size: 14px; }
 .search-box.compact .search-icon { left: 13px; font-size: 18px; }
+
+/* Back arrow in the top bar: phones only (on a computer the browser's Back button is always visible) */
+.topbar-left { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.topbar-back {
+  display: none; place-items: center; width: 36px; height: 36px; margin-left: -8px;
+  background: none; border: none; border-radius: 50%; color: var(--text); cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.topbar-back:active { background: var(--surface-2); color: var(--accent); }
 
 /* ---------- Navigation ---------- */
 .nav { display: flex; align-items: center; gap: 14px; min-width: 0; }
@@ -504,6 +515,7 @@ img.fade-in.loaded { opacity: 1; }
   .topbar { flex-wrap: wrap; row-gap: 10px; }
   .topbar-search { order: 3; flex-basis: 100%; max-width: none; }
   .topbar-search.hide-on-phone { display: none; }
+  .topbar-back { display: grid; }
   .avatar-row { flex-direction: column; align-items: flex-start; }
   .brand { font-size: 17px; }
   /* Top bar: "★ My favourites" becomes just "★" so logo, favourites and Log out fit on one line. */

@@ -12,6 +12,7 @@ test.describe('Game page', () => {
 
     await step(page, 'Check score, description and details', async () => {
       await expect(page.getByTestId('game-metacritic')).toContainText('Metacritic');
+      await expect(page.getByTestId('game-released')).toHaveText('Released 18.05.2015'); // dd.mm.yyyy
       await expect(page.getByTestId('game-description')).not.toBeEmpty();
       const facts = page.getByTestId('game-facts');
       await expect(facts).toContainText('Platforms');

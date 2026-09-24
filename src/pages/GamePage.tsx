@@ -70,7 +70,7 @@ export default function GamePage() {
               <span className="pill pill-accent" data-testid="game-metacritic">Metacritic {game.metacritic}</span>
             )}
             {game.rating > 0 && <span className="pill">★ {game.rating.toFixed(2)} / 5</span>}
-            {game.released && <span className="pill">Released {game.released}</span>}
+            {game.released && <span className="pill" data-testid="game-released">Released {formatDate(game.released)}</span>}
             {game.playtime > 0 && <span className="pill">~{game.playtime} h avg playtime</span>}
           </div>
           <WishlistButton game={game} />
@@ -145,4 +145,10 @@ function GamePageSkeleton() {
       </div>
     </section>
   );
+}
+
+/** RAWG gives dates as 2015-05-18; show them as 18.05.2015. */
+function formatDate(isoDate: string): string {
+  const [year, month, day] = isoDate.slice(0, 10).split('-');
+  return day && month && year ? `${day}.${month}.${year}` : isoDate;
 }
