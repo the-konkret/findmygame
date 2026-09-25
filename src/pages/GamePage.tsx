@@ -8,7 +8,7 @@ import FavouriteButton from '../components/FavouriteButton';
 import WishlistButton from '../components/WishlistButton';
 import NotesPanel from '../components/NotesPanel';
 import LoadingImage from '../components/LoadingImage';
-import { BackIcon } from '../components/Icons';
+import { BackIcon, NoteIcon } from '../components/Icons';
 
 export default function GamePage() {
   const { id = '' } = useParams();
@@ -16,6 +16,15 @@ export default function GamePage() {
   const [game, setGame] = useState<GameDetails | null>(null);
   const [error, setError] = useState('');
   const { user } = useAuth();
+  // Notes: hidden until "Add a note" is clicked (or shown straight away if there's a saved note).
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [hasNote, setHasNote] = useState(false);
+  const [noteFocus, setNoteFocus] = useState(0);
+  useEffect(() => {
+    setNotesOpen(false);
+    setHasNote(false);
+    setNoteFocus(0);
+  }, [id]);
 
   // Ask for your favourites and wishlist at the same time as the game details, so they're ready when the page shows.
   useEffect(() => {
@@ -74,7 +83,23 @@ export default function GamePage() {
             {game.released && <span className="pill" data-testid="game-released">Released {formatDate(game.released)}</span>}
             {game.playtime > 0 && <span className="pill">~{game.playtime} h avg playtime</span>}
           </div>
-          <WishlistButton game={game} />
+          <div className="hero-actions">
+            <WishlistButton game={game} />
+            {user && (
+              <button
+                type="button"
+                className="btn-fav"
+                onClick={() => {
+                  setNotesOpen(true);
+                  setNoteFocus((n) => n + 1);
+                }}
+                data-testid="note-button"
+              >
+                <NoteIcon />
+                <span>{hasNote ? 'Your note' : 'Add a note'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -85,8 +110,14 @@ export default function GamePage() {
             <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
           </article>
 
-          {/* Your notes: under About, stretching to fill the space next to Deals and Details */}
-          <NotesPanel game={game} />
+          {/* Your note: shown after "Add a note", or straight away if you've written one */}
+          <NotesPanel
+            game={game}
+            open={notesOpen}
+            focusRequest={noteFocus}
+            onHasNote={setHasNote}
+            onClose={() => setNotesOpen(false)}
+          />
         </div>
 
         <div className="game-sidebar">

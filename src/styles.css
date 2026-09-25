@@ -355,11 +355,11 @@ img.fade-in.loaded { opacity: 1; }
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
 }
 .game-sidebar { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.game-body { align-items: stretch; } /* both columns as tall as the taller one… */
-.game-sidebar { align-self: start; }  /* …except the sidebar, which keeps its natural height */
-/* My notes fills whatever space is left under About, down to the bottom of the sidebar. */
-.game-main .notes { flex: 1; display: flex; flex-direction: column; }
-.game-main .notes .notes-input { flex: 1 0 auto; } /* fills the space, and can still be dragged bigger (resize handle) */
+.game-body { align-items: start; }
+/* Buttons under the badges: wishlist and "Add a note" side by side */
+.hero-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.hero-actions .fav-wrap, .hero-actions > .btn-fav { margin-top: 0; }
+.notes { animation: mode-in 0.25s ease backwards; } /* appears with a short fade when opened */
 .game-description p { white-space: pre-line; color: #d4d4d8; margin: 0; }
 
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; }
@@ -561,6 +561,20 @@ img.fade-in.loaded { opacity: 1; }
 .account-details dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
 
 .page-title { font-size: 26px; margin: 4px 0 20px; }
+/* List pages: title on the left, "Sort by" on the right */
+.list-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.list-header .page-title { margin: 4px 0 0; }
+.list-note { margin: -8px 0 12px; }
+.sort-by { display: inline-flex; align-items: center; gap: 8px; }
+.sort-label { color: var(--text-dim); font-size: 13px; }
+.sort-select {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e8650a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  color: var(--text); border: 1px solid var(--accent); border-radius: 8px;
+  padding: 7px 32px 7px 12px; font: inherit; font-size: 14px; outline: none;
+}
+.sort-select:focus-visible { box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.25); }
+.sort-select option { background: var(--surface); color: var(--text); }
 .small { font-size: 12px; }
 .info-text { margin: 0; color: var(--accent-hover); font-size: 14px; }
 
@@ -676,7 +690,7 @@ img.fade-in.loaded { opacity: 1; }
   .nav-label { display: none; }
   .nav-link { padding: 8px 6px; font-size: 15px; }
   /* iPhones zoom the whole page when you tap a text box with text smaller than 16px. */
-  .search-box.compact input, .notes-input, .auth-form input { font-size: 16px; }
+  .search-box.compact input, .notes-input, .auth-form input, .sort-select { font-size: 16px; }
   /* Leave room for the on-screen keyboard. */
   .suggestions { max-height: 50vh; }
   .suggestion { padding: 8px; }

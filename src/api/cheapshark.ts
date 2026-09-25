@@ -162,7 +162,7 @@ function normalize(title: string): string {
 }
 
 /** Finds CheapShark's ID for a game: by Steam app ID when we know it (exact), otherwise by title. */
-async function findGameId(name: string, steamAppId: string | null, signal?: AbortSignal): Promise<string | null> {
+export async function findGameId(name: string, steamAppId: string | null, signal?: AbortSignal): Promise<string | null> {
   if (steamAppId) {
     const bySteam = await get<CsGameListItem[]>('/games', { steamAppID: steamAppId, limit: '1' }, signal, 7 * DAY);
     if (bySteam.length > 0) return bySteam[0].gameID;
