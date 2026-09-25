@@ -12,5 +12,7 @@
     // Only /api/... requests run the Worker code; everything else is served as plain files.
     "run_worker_first": ["/api/*"]
   },
+  // Cloudflare's AI models, for the "Describe a game" search (free daily allowance on the free plan).
+  "ai": { "binding": "AI" },
   "observability": { "enabled": true }
 }

@@ -15,6 +15,12 @@ export default defineConfig(({ mode }) => {
       // Local stand-in for worker/index.ts: the browser calls /api/rawg/...,
       // and this adds the key and forwards the request to RAWG.
       proxy: {
+        // The AI search needs Cloudflare's AI, which only exists on Cloudflare, so on your computer
+        // these requests go to the live site (works once the AI search has been pushed and deployed).
+        '/api/describe': {
+          target: 'https://findmygame.mktestbb.workers.dev',
+          changeOrigin: true,
+        },
         '/api/rawg': {
           target: 'https://api.rawg.io',
           changeOrigin: true,

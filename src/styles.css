@@ -113,6 +113,28 @@ a:hover { color: var(--accent-hover); }
   .btn-surprise { height: auto; padding: 10px 22px; }
 }
 
+.search-modes {
+  display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+}
+.search-mode {
+  border: none; background: none; color: var(--text-dim); font: inherit; font-size: 14px; font-weight: 600;
+  padding: 7px 16px; border-radius: 999px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.search-mode:hover { color: var(--text); }
+.search-mode.active { background: var(--accent); color: #000; }
+.describe-box { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 10px; }
+.describe-input {
+  width: 100%; resize: vertical; min-height: 84px; padding: 14px 18px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 16px;
+  font: inherit; font-size: 16px; line-height: 1.45; outline: none;
+}
+.describe-input::placeholder { color: #6a6a70; }
+.describe-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.25); }
+.describe-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.describe-bar .btn-primary { flex-shrink: 0; padding: 10px 22px; }
+.describe-note { text-align: center; margin: 0 0 14px; }
+.card-note { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: #d4d4d8; font-style: italic; }
 .hero-hint { margin: 12px 0 0; color: var(--text-dim); font-size: 13px; text-align: center; }
 
 /* Suggestions dropdown under the search box */
@@ -588,6 +610,8 @@ img.fade-in.loaded { opacity: 1; }
   .content { padding: 16px 16px 32px; }
   .hero-title { font-size: 26px; text-align: center; }
   .search-hero { padding-top: 8vh; }
+  .describe-bar { flex-direction: column; align-items: stretch; }
+  .describe-bar .btn-primary { padding: 12px; }
   /* Results and favourites as a list: picture on the left, text on the right. */
   .grid { grid-template-columns: 1fr; gap: 10px; }
   .card { flex-direction: row; align-items: stretch; }

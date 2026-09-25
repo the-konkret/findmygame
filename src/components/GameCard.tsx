@@ -3,7 +3,14 @@ import type { GameSummary } from '../api/rawg';
 import LoadingImage from './LoadingImage';
 import { StarIcon } from './Icons';
 
-export default function GameCard({ game, isFavourite = false }: { game: GameSummary; isFavourite?: boolean }) {
+interface Props {
+  game: GameSummary;
+  isFavourite?: boolean;
+  /** An extra line under the details, e.g. the AI search's reason why this game matches. */
+  note?: string;
+}
+
+export default function GameCard({ game, isFavourite = false, note }: Props) {
   const year = game.released ? game.released.slice(0, 4) : 'TBA';
   const platforms = (game.parent_platforms ?? []).map((p) => p.platform.name).join(' · ');
 
@@ -28,6 +35,7 @@ export default function GameCard({ game, isFavourite = false }: { game: GameSumm
         <h3 className="card-title" data-testid="game-card-title">{game.name}</h3>
         <p className="card-meta">{year}</p>
         {platforms && <p className="card-platforms">{platforms}</p>}
+        {note && <p className="card-note" data-testid="game-card-note">{note}</p>}
       </div>
     </Link>
   );

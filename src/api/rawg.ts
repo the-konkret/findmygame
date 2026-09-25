@@ -70,7 +70,7 @@ export async function searchGames(term: string, signal?: AbortSignal, limit = 20
 const ROMAN: Record<string, string> = { ii: '2', iii: '3', iv: '4', v: '5', vi: '6', vii: '7', viii: '8', ix: '9', x: '10' };
 
 /** "Baldur's Gate III" → "baldurs gate 3" */
-function normalize(text: string): string {
+export function normalize(text: string): string {
   return text
     .toLowerCase()
     .replace(/[®™©]/g, '')
@@ -116,6 +116,37 @@ export function rankByTitleMatch<T extends { name: string; added?: number }>(gam
   // (no Witcher 3 when you asked for Earthworm Jim 3).
   const goodMatchExists = ranked.some((x) => x.coverage >= 0.5);
   return ranked.filter((x) => !goodMatchExists || x.coverage >= 0.5).map((x) => x.game);
+}
+
+/**
+ * The RAWG game that best matches an exact title (and year, if known), or null if nothing matches well.
+ * Used by the AI search to turn the AI's guesses into real games. One request, most relevant first.
+ */
+export async function findGameByTitle(title: string, year: number | null, signal?: AbortSignal): Promise<GameSummary | null> {
+  const data = await request<Paged<GameSummary>>(
+    '/games',
+    { search: title, search_precise: 'true', page_size: '10' },
+    signal,
+  );
+  const wanted = normalize(title);
+  const wantedWords = wanted.split(' ').filter(Boolean);
+  if (wantedWords.length === 0) return null;
+
+  let best: { game: GameSummary; points: number } | null = null;
+  for (const game of data.results) {
+    const name = normalize(game.name);
+    const nameWords = name.split(' ');
+    const found = wantedWords.filter((w) => nameWords.includes(w)).length / wantedWords.length;
+    if (found < 0.75) continue; // not the same game
+    let points = found * 3;
+    if (name === wanted) points += 2;
+    points -= Math.max(0, nameWords.length - wantedWords.length) * 0.15; // "Portal 2: In Motion" is not "Portal 2"
+    const released = game.released ? Number(game.released.slice(0, 4)) : null;
+    if (year && released) points += released === year ? 1.5 : Math.abs(released - year) <= 1 ? 0.8 : 0;
+    points += Math.log10((game.added ?? 0) + 1) * 0.3; // the well-known one, not a fan remake
+    if (!best || points > best.points) best = { game, points };
+  }
+  return best?.game ?? null;
 }
 
 /**

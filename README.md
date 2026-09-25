@@ -87,6 +87,18 @@ There are no emails and nothing runs on the server: notifications appear the nex
 
 One-time setup: run `supabase/price-alerts.sql` in the Supabase SQL Editor.
 
+## "Describe it": AI search
+
+On the home page, "Describe it" lets you describe a game in your own words. The Worker (`worker/describe.ts`)
+asks Cloudflare Workers AI (model: Google Gemma 4) for up to 5 guesses; the browser looks each one up on RAWG and
+shows only games that exist, with the AI's one-line reason.
+
+- Free: Workers AI's free plan includes 10,000 "neurons" a day; one search uses roughly 10, so ~800 searches a day.
+- Same description asked again → answered from Cloudflare's cache (free). Max 20 AI searches per visitor per hour.
+- Setup: nothing to sign up for. The `"ai"` line in `wrangler.jsonc` connects it on the next deploy.
+- On your computer, `npm run dev` sends AI searches to the live site (the AI only runs on Cloudflare),
+  so it works locally once the AI search has been pushed.
+
 ## Project layout
 
 ```
@@ -109,6 +121,8 @@ src/components/NotificationBell.tsx   the bell and its dropdown
 src/components/PriceAlertBox.tsx      "Notify me when the price drops", in the Deals box
 supabase/price-alerts.sql    price alerts table and rules
 public/favicon.svg           tab icon (plus favicon-32.png and apple-touch-icon.png)
+worker/describe.ts           "Describe it" AI search (Cloudflare Workers AI)
+src/api/describe.ts          AI search in the browser: asks the Worker, then finds each guess on RAWG
 src/styles.css               theme colours and layout
 playwright.config.ts         test settings (which site, browsers, reports)
 allurerc.mjs                 Allure report settings
