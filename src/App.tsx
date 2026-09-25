@@ -10,10 +10,11 @@ import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
 import { recordPageView } from './api/analytics';
 import StatsPage from './pages/StatsPage';
+import RankingsPage from './pages/RankingsPage';
 import SearchBox from './components/SearchBox';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
-import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon } from './components/Icons';
+import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -30,11 +31,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
+      {/* signed-in: on very narrow phones the logo shows just its ring, to make room for the icons */}
+      <header className={`topbar ${user ? 'signed-in' : ''}`}>
         <div className="topbar-left">
           {pathname !== '/' && <TopBarBack />}
           <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
-            <span className="brand-mark">◉</span> FindMy<span className="brand-accent">Game</span>
+            <span className="brand-mark">◉</span>
+            <span className="brand-text">FindMy<span className="brand-accent">Game</span></span>
           </Link>
         </div>
         {/* The home page has its own big search box; every other page gets one in the top bar.
@@ -51,6 +54,7 @@ export default function App() {
           <Route path="/favourites" element={<FavouritesPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/rankings" element={<RankingsPage />} />
           {/* Not linked anywhere: visit statistics */}
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/account" element={<AccountPage />} />
@@ -102,6 +106,7 @@ function UserMenu() {
   if (!user) {
     return (
       <nav className="nav">
+        <RankingsLink />
         <NavLink to="/login" className="nav-link" data-testid="nav-login">Log in</NavLink>
       </nav>
     );
@@ -113,6 +118,7 @@ function UserMenu() {
 
   return (
     <nav className="nav">
+      <RankingsLink />
       <NavLink to="/favourites" className="nav-link nav-favourites" aria-label="My favourites" data-testid="nav-favourites">
         <StarIcon size={16} />
         <span className="nav-label">My favourites</span>
@@ -131,6 +137,15 @@ function UserMenu() {
         icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
       />
     </nav>
+  );
+}
+
+function RankingsLink() {
+  return (
+    <NavLink to="/rankings" className="nav-link nav-favourites" aria-label="Rankings" data-testid="nav-rankings">
+      <TrophyIcon size={16} />
+      <span className="nav-label">Rankings</span>
+    </NavLink>
   );
 }
 

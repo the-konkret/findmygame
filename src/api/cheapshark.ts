@@ -242,3 +242,58 @@ export async function getBestPrices(cheapsharkIds: string[], signal?: AbortSigna
   }
   return result;
 }
+
+// ---- Rankings: best deals right now ----
+
+interface CsDealListItem {
+  title: string;
+  gameID: string;
+  dealID: string;
+  storeID: string;
+  salePrice: string;
+  normalPrice: string;
+  savings: string;
+  steamAppID: string | null;
+  thumb: string;
+  metacriticScore: string;
+  steamRatingPercent: string;
+}
+
+export interface TopDeal {
+  title: string;
+  steamAppId: string | null;
+  image: string;
+  price: number;
+  normalPrice: number;
+  savingsPercent: number;
+  storeName: string;
+  url: string;
+}
+
+/** CheapShark's best current deals (its own "deal rating": discount, price and reviews together), one per game. */
+export async function getTopDeals(signal?: AbortSignal): Promise<TopDeal[]> {
+  const [list, stores] = await Promise.all([
+    get<CsDealListItem[]>('/deals', { pageSize: '60', sortBy: 'Deal Rating' }, signal, 30 * MINUTE),
+    getStores(),
+  ]);
+  const seen = new Set<string>();
+  const deals: TopDeal[] = [];
+  for (const d of list) {
+    if (seen.has(d.gameID) || stores.get(d.storeID)?.isActive === 0) continue;
+    seen.add(d.gameID);
+    deals.push({
+      title: d.title,
+      steamAppId: d.steamAppID || null,
+      // Steam's wide picture when it's a Steam game; otherwise CheapShark's small one.
+      image: d.steamAppID ? `https://cdn.akamai.steamstatic.com/steam/apps/${d.steamAppID}/header.jpg` : d.thumb,
+      price: Number(d.salePrice),
+      normalPrice: Number(d.normalPrice),
+      savingsPercent: Math.round(Number(d.savings)),
+      storeName: stores.get(d.storeID)?.storeName ?? `Store ${d.storeID}`,
+      url: `${SITE_URL}/redirect?dealID=${encodeURIComponent(d.dealID)}`,
+    });
+    if (deals.length >= 24) break;
+  }
+  return deals;
+}
+

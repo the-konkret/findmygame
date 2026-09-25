@@ -21,6 +21,12 @@ export default defineConfig(({ mode }) => {
           target: 'https://findmygame.mktestbb.workers.dev',
           changeOrigin: true,
         },
+        // Rankings → Most played: on the live site the Worker fetches SteamSpy; locally we go straight there.
+        '/api/steamspy': {
+          target: 'https://steamspy.com',
+          changeOrigin: true,
+          rewrite: (path) => `/api.php?request=${path.replace(/^\/api\/steamspy\//, '')}`,
+        },
         '/api/rawg': {
           target: 'https://api.rawg.io',
           changeOrigin: true,

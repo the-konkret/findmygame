@@ -1,6 +1,7 @@
 // Cloudflare Worker: runs on Cloudflare's servers, not in the visitor's browser.
 //
 // - Requests to /api/rawg/... are handled here: the secret RAWG key is added and the request goes to RAWG.
+// - /api/steamspy/top100in2weeks: SteamSpy's "most played on Steam" list for the Rankings page (cached 6 h).
 // - POST /api/describe is the "Describe a game" AI search (worker/describe.ts, Cloudflare Workers AI).
 // - Every 3 hours Cloudflare runs `scheduled` below: the price check for everyone's price alerts
 //   (worker/priceCheck.ts). POST /api/alerts/run with the ALERT_RUN_KEY secret runs it on demand.
@@ -28,11 +29,14 @@ interface ExecutionContext {
 const ALLOWED = /^games(\/[\w-]+(\/(stores|game-series))?)?$/;
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith('/api/rawg/')) {
       return proxyRawg(url, request, env);
+    }
+    if (url.pathname.startsWith('/api/steamspy/')) {
+      return proxySteamSpy(url, ctx);
     }
     if (url.pathname === '/api/alerts/run') {
       return runPriceCheckNow(request, env);
@@ -102,6 +106,30 @@ async function proxyRawg(url: URL, request: Request, env: Env): Promise<Response
       'Cache-Control': upstream.ok ? 'public, max-age=300' : 'no-store',
     },
   });
+}
+
+/**
+ * SteamSpy's "most played" list, for the Rankings page. Browsers can't ask SteamSpy directly, so we do,
+ * and keep the answer for 6 hours (SteamSpy allows about 1 request per second and updates daily).
+ */
+async function proxySteamSpy(url: URL, ctx: ExecutionContext): Promise<Response> {
+  const list = url.pathname.slice('/api/steamspy/'.length);
+  if (list !== 'top100in2weeks') return json({ error: 'Not found' }, 404);
+
+  const cache = (globalThis as unknown as { caches?: { default?: Cache } }).caches?.default;
+  const key = new Request(`https://findmygame.cache/steamspy/${list}`);
+  const cached = await cache?.match(key);
+  if (cached) return cached;
+
+  const upstream = await fetch(`https://steamspy.com/api.php?request=${list}`, {
+    headers: { 'User-Agent': 'FindMyGame (+https://github.com/the-konkret/findmygame)' },
+  });
+  if (!upstream.ok) return json({ error: `SteamSpy answered ${upstream.status}` }, 502);
+  const response = new Response(upstream.body, {
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=21600' },
+  });
+  if (cache) ctx.waitUntil(cache.put(key, response.clone()));
+  return response;
 }
 
 function json(body: unknown, status: number): Response {

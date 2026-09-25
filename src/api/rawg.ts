@@ -20,6 +20,8 @@ export interface GameSummary {
   metacritic: number | null;
   /** how many RAWG users added the game: a good measure of popularity */
   added?: number;
+  /** how many players gave it a star rating (for weighing `rating`) */
+  ratings_count?: number;
   parent_platforms?: { platform: NamedRef }[];
   genres?: NamedRef[];
 }
@@ -213,6 +215,49 @@ export async function discoverGames(
   for (const g of series?.results ?? []) if ((g.added ?? 0) >= 5) result.set(g.id, g);
   for (const g of byTags) if (!result.has(g.id)) result.set(g.id, g);
   return [...result.values()].slice(0, limit);
+}
+
+// ---- Rankings ----
+
+function isoDay(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** Trending: this month's releases, most added by RAWG players first. */
+export async function getTrending(signal?: AbortSignal): Promise<GameSummary[]> {
+  const today = new Date();
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const data = await request<Paged<GameSummary>>(
+    '/games',
+    { dates: `${isoDay(monthAgo)},${isoDay(today)}`, ordering: '-added', page_size: '40' },
+    signal,
+  );
+  return data.results.filter((g) => g.background_image).slice(0, 24);
+}
+
+/**
+ * Top rated for a year (or all time): RAWG's 80 most popular games of the period, ranked by their players'
+ * star rating. The rating is "weighted": a game rated by few players is pulled towards an average 3.5,
+ * so 5 people giving ★5 can't beat 5,000 giving ★4.6. (RAWG stopped filling in Metacritic scores in 2024.)
+ */
+export async function getTopRated(year: number | null, signal?: AbortSignal): Promise<GameSummary[]> {
+  const dates: Record<string, string> = year ? { dates: `${year}-01-01,${year}-12-31` } : {};
+  const pages = await Promise.all(
+    [1, 2].map((page) =>
+      request<Paged<GameSummary>>('/games', { ordering: '-added', page_size: '40', page: String(page), ...dates }, signal),
+    ),
+  );
+  const seen = new Set<number>();
+  const games = pages
+    .flatMap((p) => p.results)
+    .filter((g) => !seen.has(g.id) && seen.add(g.id) && (g.ratings_count ?? 0) >= 10);
+  return games.sort((a, b) => weightedRating(b) - weightedRating(a)).slice(0, 24);
+}
+
+export function weightedRating(g: { rating: number; ratings_count?: number }): number {
+  const n = g.ratings_count ?? 0;
+  const PRIOR = 50; // how many "average" votes every game starts with
+  return (g.rating * n + 3.5 * PRIOR) / (n + PRIOR);
 }
 
 /**
