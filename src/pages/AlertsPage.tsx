@@ -130,7 +130,7 @@ export default function AlertsPage() {
                     <span className="alert-target" data-testid="alert-target">{usd.format(a.target_price)}</span>
                   </div>
                   <div className="card-body">
-                    <h3 className="card-title" data-testid="alert-card-title">{a.game_name}</h3>
+                    <h3 className="card-title" title={a.game_name} data-testid="alert-card-title">{a.game_name}</h3>
                     <p className="card-meta">
                       Your price: <strong className="alert-your-price">{usd.format(a.target_price)}</strong> or less
                     </p>

@@ -209,7 +209,7 @@ function RankCard({ rank, title, image, meta, corner, to, findByName }: CardProp
         {corner}
       </div>
       <div className="card-body">
-        <h3 className="card-title" data-testid="rank-card-title">{title}</h3>
+        <h3 className="card-title" title={title} data-testid="rank-card-title">{title}</h3>
         <p className="card-meta">{opening ? 'Opening…' : meta}</p>
       </div>
     </>

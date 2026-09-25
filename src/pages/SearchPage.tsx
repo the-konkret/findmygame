@@ -5,6 +5,7 @@ import { describeSearch, MAX_DESCRIPTION, type AiMatch } from '../api/describe';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
 import SurpriseButton from '../components/SurpriseButton';
+import { CloseIcon } from '../components/Icons';
 import { useFavouriteIds } from '../hooks/useFavouriteIds';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
@@ -16,10 +17,13 @@ export default function SearchPage() {
   // The submitted search lives in the address, so Back/Forward and shared links work:
   //   ?q=...   search by name (typing only shows suggestions; Enter fills the address and the grid)
   //   ?ai=...  "Describe it": the AI's guesses for a description
+  //   &tab=ai  both kept, "Describe it" was the last one used (each tab shows only its own results,
+  //            and switching back to the other tab brings its results back)
   const [params, setParams] = useSearchParams();
   const query = (params.get('q') ?? '').trim();
   const aiQuery = (params.get('ai') ?? '').trim();
-  const [mode, setMode] = useState<Mode>(aiQuery ? 'describe' : 'name');
+  const aiTab = params.get('tab') === 'ai';
+  const [mode, setMode] = useState<Mode>(aiQuery && (aiTab || !query) ? 'describe' : 'name');
   const [input, setInput] = useState(query);
   const [description, setDescription] = useState(aiQuery);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,11 +39,15 @@ export default function SearchPage() {
   const canLoadMore = !!search && (search.games.length > shown || search.hasMore);
   const [matches, setMatches] = useState<AiMatch[]>([]);
   const [similar, setSimilar] = useState<GameSummary[]>([]);
+  // name search and AI search load separately
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+  const [aiStatus, setAiStatus] = useState<Status>('idle');
+  const [aiError, setAiError] = useState('');
   const favouriteIds = useFavouriteIds(); // to put a ★ on games you've already saved
 
-  const hasResults = Boolean(query || aiQuery);
+  // Results for the tab you're on (the other tab's stay hidden until you switch back)
+  const hasResults = mode === 'name' ? Boolean(query) : Boolean(aiQuery);
 
   // The orange pill behind the active tab slides from one tab to the other.
   const modesRef = useRef<HTMLDivElement>(null);
@@ -65,45 +73,65 @@ export default function SearchPage() {
   useEffect(() => {
     setInput(query);
     setDescription(aiQuery);
-    if (aiQuery) setMode('describe');
+    if (aiQuery && (aiTab || !query)) setMode('describe');
     else if (query) setMode('name');
     if (!query && !aiQuery) {
       window.scrollTo({ top: 0 });
       (mode === 'describe' ? describeRef : inputRef).current?.focus();
     }
-  }, [query, aiQuery]);
+  }, [query, aiQuery, aiTab]);
 
-  // Load the results for the submitted search (by name, or by description).
+  // Load the results for the submitted name search.
   useEffect(() => {
     setSearch(null);
     setShown(PER_PAGE);
     setMoreError(false);
     setLoadingMore(false);
     moreAbort.current?.abort();
-    setMatches([]);
-    setSimilar([]);
-    if (!query && !aiQuery) {
+    if (!query) {
       setStatus('idle');
       return;
     }
     const controller = new AbortController();
     setStatus('loading');
     setError('');
-    const work = aiQuery
-      ? describeSearch(aiQuery, controller.signal).then((r) => {
-          setMatches(r.matches);
-          setSimilar(r.similar);
-        })
-      : startSearch(query, controller.signal).then(setSearch);
-    work
-      .then(() => setStatus('done'))
+    startSearch(query, controller.signal)
+      .then((r) => {
+        setSearch(r);
+        setStatus('done');
+      })
       .catch((err: Error) => {
         if (err.name === 'AbortError') return;
         setError(err.message);
         setStatus('error');
       });
     return () => controller.abort();
-  }, [query, aiQuery]);
+  }, [query]);
+
+  // Load the AI's guesses for the submitted description.
+  useEffect(() => {
+    setMatches([]);
+    setSimilar([]);
+    if (!aiQuery) {
+      setAiStatus('idle');
+      return;
+    }
+    const controller = new AbortController();
+    setAiStatus('loading');
+    setAiError('');
+    describeSearch(aiQuery, controller.signal)
+      .then((r) => {
+        setMatches(r.matches);
+        setSimilar(r.similar);
+        setAiStatus('done');
+      })
+      .catch((err: Error) => {
+        if (err.name === 'AbortError') return;
+        setAiError(err.message);
+        setAiStatus('error');
+      });
+    return () => controller.abort();
+  }, [aiQuery]);
 
   /** "Load more": the next PER_PAGE games, asking RAWG for another page if we've shown all we have. */
   async function loadMore() {
@@ -130,15 +158,16 @@ export default function SearchPage() {
 
   function submit(term: string) {
     if (term === query) return;
-    setParams(term ? { q: term } : {});
+    // keep the last description (for the other tab); this tab is now the one in use
+    setParams({ ...(term ? { q: term } : {}), ...(aiQuery ? { ai: aiQuery } : {}) });
     inputRef.current?.blur();
   }
 
   function submitDescription(e?: FormEvent) {
     e?.preventDefault();
     const text = description.trim().replace(/\s+/g, ' ');
-    if (text.length < 5 || text === aiQuery) return;
-    setParams({ ai: text });
+    if (text.length < 5 || (text === aiQuery && aiTab)) return;
+    setParams({ ...(query ? { q: query } : {}), ai: text, tab: 'ai' });
     describeRef.current?.blur();
   }
 
@@ -211,6 +240,7 @@ export default function SearchPage() {
           </>
         ) : (
           <form className="describe-box" onSubmit={submitDescription} data-testid="describe-form">
+            <div className="describe-field">
             <textarea
               ref={describeRef}
               className="describe-input"
@@ -224,6 +254,22 @@ export default function SearchPage() {
               data-testid="describe-input"
               autoFocus={!hasResults && !switchedRef.current}
             />
+            {description !== '' && (
+              <button
+                type="button"
+                className="field-clear describe-clear"
+                aria-label="Clear the description"
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setDescription('');
+                  describeRef.current?.focus();
+                }}
+                data-testid="describe-clear"
+              >
+                <CloseIcon size={12} />
+              </button>
+            )}
+            </div>
             <div className="describe-bar">
               <span className="muted small">
                 What happens in it, how it looks, roughly when it came out… The AI suggests up to 5 games.
@@ -231,10 +277,10 @@ export default function SearchPage() {
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={description.trim().length < 5 || status === 'loading'}
+                disabled={description.trim().length < 5 || aiStatus === 'loading'}
                 data-testid="describe-submit"
               >
-                {status === 'loading' && aiQuery ? 'Thinking…' : 'Find it'}
+                {aiStatus === 'loading' ? 'Thinking…' : 'Find it'}
               </button>
             </div>
           </form>
@@ -242,11 +288,12 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {status === 'loading' && (
+      {/* Only the results of the tab you're on */}
+      {(mode === 'name' ? status : aiStatus) === 'loading' && (
         <>
-          {aiQuery && <p className="status" data-testid="describe-loading">Asking the AI which games fit…</p>}
+          {mode === 'describe' && <p className="status" data-testid="describe-loading">Asking the AI which games fit…</p>}
           <div className="grid" data-testid="search-loading" aria-busy="true" aria-label="Searching">
-            {Array.from({ length: aiQuery ? 5 : 8 }, (_, i) => (
+            {Array.from({ length: mode === 'describe' ? 5 : 8 }, (_, i) => (
               <div key={i} className="card card-skeleton" aria-hidden>
                 <div className="card-image skeleton" />
                 <div className="card-body">
@@ -258,18 +305,19 @@ export default function SearchPage() {
           </div>
         </>
       )}
-      {status === 'error' && <p className="status error" data-testid="search-error">{error}</p>}
-      {status === 'done' && query && results.length === 0 && (
+      {mode === 'name' && status === 'error' && <p className="status error" data-testid="search-error">{error}</p>}
+      {mode === 'describe' && aiStatus === 'error' && <p className="status error" data-testid="search-error">{aiError}</p>}
+      {mode === 'name' && status === 'done' && query && results.length === 0 && (
         <p className="status" data-testid="search-empty">No games found for “{query}”.</p>
       )}
-      {status === 'done' && aiQuery && matches.length === 0 && similar.length === 0 && (
+      {mode === 'describe' && aiStatus === 'done' && aiQuery && matches.length === 0 && similar.length === 0 && (
         <p className="status" data-testid="describe-empty">
           The AI couldn't match that to a game. Try adding details: what you do in it, the setting or look, the
           platform, or roughly when it came out.
         </p>
       )}
 
-      {results.length > 0 && (
+      {mode === 'name' && results.length > 0 && (
         <div className="grid" data-testid="search-results">
           {results.map((g) => (
             <GameCard key={g.id} game={g} isFavourite={favouriteIds?.has(g.id) ?? false} />
@@ -291,7 +339,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {matches.length > 0 && (
+      {mode === 'describe' && matches.length > 0 && (
         <>
           <h2 className="describe-heading">Best guesses</h2>
           <p className="describe-note muted small">Picked by AI, best match first. The AI can be wrong, so check the details.</p>
@@ -303,7 +351,7 @@ export default function SearchPage() {
         </>
       )}
 
-      {similar.length > 0 && (
+      {mode === 'describe' && similar.length > 0 && (
         <>
           <h2 className="describe-heading">More games like that</h2>
           <div className="grid" data-testid="describe-similar">

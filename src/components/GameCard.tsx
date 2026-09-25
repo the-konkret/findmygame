@@ -32,9 +32,10 @@ export default function GameCard({ game, isFavourite = false, note }: Props) {
         )}
       </div>
       <div className="card-body">
-        <h3 className="card-title" data-testid="game-card-title">{game.name}</h3>
+        <h3 className="card-title" title={game.name} data-testid="game-card-title">{game.name}</h3>
         <p className="card-meta">{year}</p>
-        {platforms && <p className="card-platforms">{platforms}</p>}
+        {/* always one line (empty if unknown), so all cards are the same height */}
+        <p className="card-platforms" title={platforms || undefined}>{platforms || '\u00a0'}</p>
         {note && <p className="card-note" data-testid="game-card-note">{note}</p>}
       </div>
     </Link>

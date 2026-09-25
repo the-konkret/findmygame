@@ -95,7 +95,7 @@ export default function GameListPage({ list, title, path, empty, testId }: Props
                   )}
                 </div>
                 <div className="card-body">
-                  <h3 className="card-title" data-testid={`${testId}-card-title`}>{g.game_name}</h3>
+                  <h3 className="card-title" title={g.game_name} data-testid={`${testId}-card-title`}>{g.game_name}</h3>
                   <p className="card-meta">{g.released ? g.released.slice(0, 4) : 'TBA'}</p>
                   {sort === 'cheapest' && prices?.has(g.game_id) && (
                     <p className="card-platforms" data-testid={`${testId}-card-price`}>

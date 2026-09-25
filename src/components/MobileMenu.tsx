@@ -21,6 +21,28 @@ export default function MobileMenu() {
 
   useEffect(() => setOpen(false), [pathname]);
 
+  // The panel exists only while open or sliding shut (so nothing waits off-screen, which on Safari meant
+  // clipping the top bar). mounted: in the page; shown: slid in.
+  const [mounted, setMounted] = useState(false);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      // two frames: let the panel appear off to the right first, then slide it in
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        second = requestAnimationFrame(() => setShown(true));
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        cancelAnimationFrame(second);
+      };
+    }
+    setShown(false);
+    const timer = window.setTimeout(() => setMounted(false), 300); // after the slide-out
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
   // While the menu covers the screen, the page behind it shouldn't scroll.
   useEffect(() => {
     if (!open) return;
@@ -66,12 +88,11 @@ export default function MobileMenu() {
         {open ? <CloseIcon size={18} /> : <MenuIcon />}
       </button>
 
-      {/* Always there, slid off to the right while closed, so it can slide in and out */}
+      {mounted && (
       <nav
         id="mobile-menu-panel"
-        className={`mobile-menu-panel ${open ? 'open' : ''}`}
+        className={`mobile-menu-panel ${shown ? 'open' : ''}`}
         aria-label="Menu"
-        aria-hidden={!open}
         inert={!open}
         data-testid="mobile-menu"
       >
@@ -104,6 +125,7 @@ export default function MobileMenu() {
             </>
           )}
       </nav>
+      )}
     </div>
   );
 }

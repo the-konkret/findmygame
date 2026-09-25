@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
 import LoadingImage from './LoadingImage';
-import { SearchIcon } from './Icons';
+import { CloseIcon, SearchIcon } from './Icons';
 
 const MAX_SUGGESTIONS = 6;
 
@@ -148,6 +148,24 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
         aria-activedescendant={activeId}
         data-testid="search-input"
       />
+      {value !== '' && (
+        <button
+          type="button"
+          className="field-clear search-clear"
+          aria-label="Clear the search box"
+          // keep the cursor (and the phone keyboard) in the box
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={() => {
+            onChange('');
+            setOpen(false);
+            setActive(-1);
+            inputRef.current?.focus();
+          }}
+          data-testid="search-clear"
+        >
+          <CloseIcon size={compact ? 11 : 12} />
+        </button>
+      )}
 
       {showDropdown && (
         <ul className="suggestions" id={listId} role="listbox" data-testid="search-suggestions">
