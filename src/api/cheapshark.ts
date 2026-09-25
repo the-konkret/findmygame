@@ -6,6 +6,18 @@
 const BASE_URL = 'https://www.cheapshark.com/api/1.0';
 const SITE_URL = 'https://www.cheapshark.com';
 
+/** CheapShark's deal ids arrive already URL-encoded (e.g. "abc%2Fdef%3D"): use them as they are.
+ * Encoding them again (%2F -> %252F) breaks the id and CheapShark sends you to the store's home page. */
+function dealUrl(dealID: string): string {
+  let id = dealID;
+  try {
+    id = decodeURIComponent(dealID);
+  } catch {
+    /* not encoded after all */
+  }
+  return `${SITE_URL}/redirect?dealID=${encodeURIComponent(id)}`;
+}
+
 interface CsGameListItem {
   gameID: string;
   steamAppID: string | null;
@@ -198,7 +210,7 @@ export async function getGameDeals(
         price: Number(d.price),
         retailPrice: Number(d.retailPrice),
         savingsPercent: Math.round(Number(d.savings)),
-        url: `${SITE_URL}/redirect?dealID=${encodeURIComponent(d.dealID)}`,
+        url: dealUrl(d.dealID),
       };
     })
     .sort((a, b) => a.price - b.price);
@@ -290,7 +302,7 @@ export async function getTopDeals(signal?: AbortSignal): Promise<TopDeal[]> {
       normalPrice: Number(d.normalPrice),
       savingsPercent: Math.round(Number(d.savings)),
       storeName: stores.get(d.storeID)?.storeName ?? `Store ${d.storeID}`,
-      url: `${SITE_URL}/redirect?dealID=${encodeURIComponent(d.dealID)}`,
+      url: dealUrl(d.dealID),
     });
     if (deals.length >= 24) break;
   }

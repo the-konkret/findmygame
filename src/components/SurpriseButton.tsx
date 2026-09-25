@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRandomGame } from '../api/rawg';
 
-/** "Surprise me": opens the page of a random popular game. */
-export default function SurpriseButton() {
+/** "Surprise me": opens the page of a random popular game.
+ * compact: the smaller version next to the search box in the top bar (just the die on narrow screens). */
+export default function SurpriseButton({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -21,10 +22,18 @@ export default function SurpriseButton() {
   }
 
   return (
-    <div className="surprise">
-      <button type="button" className="btn-surprise" onClick={surprise} disabled={busy} data-testid="surprise-button">
+    <div className={`surprise ${compact ? 'compact' : ''}`}>
+      <button
+        type="button"
+        className="btn-surprise"
+        onClick={surprise}
+        disabled={busy}
+        aria-label={compact ? 'Surprise me: open a random game' : undefined}
+        title={compact ? 'Surprise me' : undefined}
+        data-testid="surprise-button"
+      >
         <span className="surprise-die" aria-hidden>⚄</span>
-        {busy ? 'Rolling…' : 'Surprise me'}
+        <span className="surprise-label">{busy ? 'Rolling…' : 'Surprise me'}</span>
       </button>
       {error && <p className="error-text small" data-testid="surprise-error">{error}</p>}
     </div>

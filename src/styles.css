@@ -441,7 +441,21 @@ img.fade-in.loaded { opacity: 1; }
 }
 
 /* ---------- Search box in the top bar ---------- */
-.topbar-search { flex: 1; max-width: 440px; }
+.topbar-search { flex: 1; max-width: 560px; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topbar-search .search-box { flex: 1; min-width: 0; }
+/* "Surprise me" next to it: a smaller pill, the same height as the box */
+.surprise.compact { position: relative; left: auto; top: auto; height: auto; margin: 0; flex-shrink: 0; align-self: stretch; }
+.surprise.compact .btn-surprise { height: 100%; padding: 0 14px; gap: 6px; font-size: 14px; }
+.surprise.compact .surprise-die { font-size: 19px; }
+.surprise.compact .error-text {
+  position: absolute; top: calc(100% + 8px); right: 0; left: auto; width: 220px; z-index: 30;
+  padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+}
+/* Narrower screens: just the die, round */
+@media (max-width: 1180px) {
+  .surprise.compact .surprise-label { display: none; }
+  .surprise.compact .btn-surprise { aspect-ratio: 1; padding: 0; justify-content: center; }
+}
 .search-box.compact { max-width: none; }
 .search-box.compact input { padding: 8px 14px 8px 38px; font-size: 14px; }
 .search-box.compact .search-icon { left: 13px; font-size: 18px; }

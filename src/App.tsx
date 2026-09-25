@@ -12,6 +12,7 @@ import { recordPageView } from './api/analytics';
 import StatsPage from './pages/StatsPage';
 import RankingsPage from './pages/RankingsPage';
 import SearchBox from './components/SearchBox';
+import SurpriseButton from './components/SurpriseButton';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
 import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
@@ -94,6 +95,7 @@ function HeaderSearch({ hideOnPhone = false }: { hideOnPhone?: boolean }) {
         }}
         inputRef={inputRef}
       />
+      <SurpriseButton compact />
     </div>
   );
 }
