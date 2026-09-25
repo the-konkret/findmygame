@@ -16,6 +16,7 @@ import SearchBox from './components/SearchBox';
 import SurpriseButton from './components/SurpriseButton';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
+import MobileMenu from './components/MobileMenu';
 import { BackIcon, CogIcon, GiftIcon, NewsIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
 
 export default function App() {
@@ -112,7 +113,8 @@ function UserMenu() {
       <nav className="nav">
         <RankingsLink />
         <NewsLink />
-        <NavLink to="/login" className="nav-link" data-testid="nav-login">Log in</NavLink>
+        <NavLink to="/login" className="nav-link desktop-only" data-testid="nav-login">Log in</NavLink>
+        <MobileMenu />
       </nav>
     );
   }
@@ -125,30 +127,34 @@ function UserMenu() {
     <nav className="nav">
       <RankingsLink />
       <NewsLink />
-      <NavLink to="/favourites" className="nav-link nav-favourites" aria-label="My favourites" data-testid="nav-favourites">
+      <NavLink to="/favourites" className="nav-link nav-favourites desktop-only" aria-label="My favourites" data-testid="nav-favourites">
         <StarIcon size={16} />
         <span className="nav-label">My favourites</span>
       </NavLink>
-      <NavLink to="/wishlist" className="nav-link nav-favourites" aria-label="Wishlist" data-testid="nav-wishlist">
+      <NavLink to="/wishlist" className="nav-link nav-favourites desktop-only" aria-label="Wishlist" data-testid="nav-wishlist">
         <GiftIcon size={16} />
         <span className="nav-label">Wishlist</span>
       </NavLink>
-      <NavLink to="/alerts" className="nav-link nav-favourites" aria-label="Alerts" data-testid="nav-alerts">
+      <NavLink to="/alerts" className="nav-link nav-favourites desktop-only" aria-label="Alerts" data-testid="nav-alerts">
         <TagIcon size={16} />
         <span className="nav-label">Alerts</span>
       </NavLink>
       <NotificationBell />
-      <AccountMenu
-        isAvatar={!!avatarUrl}
-        icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
-      />
+      <div className="desktop-only">
+        <AccountMenu
+          isAvatar={!!avatarUrl}
+          icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
+        />
+      </div>
+      {/* phones: everything but the bell goes in here */}
+      <MobileMenu />
     </nav>
   );
 }
 
 function NewsLink() {
   return (
-    <NavLink to="/news" className="nav-link nav-favourites" aria-label="News" data-testid="nav-news">
+    <NavLink to="/news" className="nav-link nav-favourites desktop-only" aria-label="News" data-testid="nav-news">
       <NewsIcon size={16} />
       <span className="nav-label">News</span>
     </NavLink>
@@ -157,7 +163,7 @@ function NewsLink() {
 
 function RankingsLink() {
   return (
-    <NavLink to="/rankings" className="nav-link nav-favourites" aria-label="Rankings" data-testid="nav-rankings">
+    <NavLink to="/rankings" className="nav-link nav-favourites desktop-only" aria-label="Rankings" data-testid="nav-rankings">
       <TrophyIcon size={16} />
       <span className="nav-label">Rankings</span>
     </NavLink>
