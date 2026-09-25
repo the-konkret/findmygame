@@ -6,13 +6,17 @@ import { CloseIcon, CogIcon, GiftIcon, MenuIcon, NewsIcon, StarIcon, TagIcon, Tr
 
 /**
  * Phones: the ☰ button in the top bar, with every page link in a panel under the bar
- * (the notification bell stays in the bar). Closes on a link tap, Esc, or a tap outside.
+ * (the notification bell stays in the bar). Closes with ×, a link tap, Esc, or going to another page.
+ * (No "tap outside to close": the menu covers the whole screen anyway, and on iPhones that check could
+ * catch the very tap that opened it and shut it straight away.)
  */
 export default function MobileMenu() {
   const { user } = useAuth();
   const logOut = useLogOut();
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  // When the menu last opened or closed: a second "click" from the same tap (iPhones sometimes send one
+  // when the button's icon changes under your finger) is ignored, so it can't undo itself.
+  const lastToggle = useRef(0);
   const { pathname } = useLocation();
 
   useEffect(() => setOpen(false), [pathname]);
@@ -29,17 +33,17 @@ export default function MobileMenu() {
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    };
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open]);
+
+  function toggle() {
+    const now = Date.now();
+    if (now - lastToggle.current < 400) return;
+    lastToggle.current = now;
+    setOpen((o) => !o);
+  }
 
   const item = (to: string, icon: ReactNode, label: string, testId: string) => (
     <NavLink to={to} className="mobile-menu-item" onClick={() => setOpen(false)} data-testid={testId}>
@@ -49,14 +53,14 @@ export default function MobileMenu() {
   );
 
   return (
-    <div className="mobile-menu" ref={wrapRef}>
+    <div className="mobile-menu">
       <button
         type="button"
         className={`nav-icon nav-burger ${open ? 'active' : ''}`}
         aria-label={open ? 'Close menu' : 'Menu'}
         aria-expanded={open}
         aria-controls="mobile-menu-panel"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         data-testid="nav-burger"
       >
         {open ? <CloseIcon size={18} /> : <MenuIcon />}
