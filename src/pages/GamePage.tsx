@@ -8,6 +8,7 @@ import FavouriteButton from '../components/FavouriteButton';
 import WishlistButton from '../components/WishlistButton';
 import NotesPanel from '../components/NotesPanel';
 import LoadingImage from '../components/LoadingImage';
+import { BackIcon } from '../components/Icons';
 
 export default function GamePage() {
   const { id = '' } = useParams();
@@ -38,7 +39,7 @@ export default function GamePage() {
   if (error) {
     return (
       <section className="game-page">
-        <button className="btn-ghost" onClick={() => navigate(-1)}>← Back</button>
+        <button className="btn-ghost btn-back" onClick={() => navigate(-1)}><BackIcon size={16} /> Back</button>
         <p className="status error" data-testid="game-error">{error}</p>
       </section>
     );
@@ -61,8 +62,8 @@ export default function GamePage() {
           <FavouriteButton game={game} />
         </div>
         <div className="game-hero-shade">
-          <button className="btn-ghost" onClick={() => navigate(-1)} data-testid="back-button">
-            ← Back
+          <button className="btn-ghost btn-back" onClick={() => navigate(-1)} data-testid="back-button">
+            <BackIcon size={16} /> Back
           </button>
           <h1 className="game-title" data-testid="game-title">{game.name}</h1>
           <div className="game-badges">
