@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { searchGames, type GameSummary } from '../api/rawg';
+import { moreResults, startSearch, type GameSummary, type SearchResults } from '../api/rawg';
 import { describeSearch, MAX_DESCRIPTION, type AiMatch } from '../api/describe';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
@@ -8,6 +8,8 @@ import SurpriseButton from '../components/SurpriseButton';
 import { useFavouriteIds } from '../hooks/useFavouriteIds';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
+
+const PER_PAGE = 20;
 type Mode = 'name' | 'describe';
 
 export default function SearchPage() {
@@ -23,7 +25,14 @@ export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const describeRef = useRef<HTMLTextAreaElement>(null);
 
-  const [results, setResults] = useState<GameSummary[]>([]);
+  // Search by name: everything found so far, shown PER_PAGE at a time ("Load more" shows the next batch).
+  const [search, setSearch] = useState<SearchResults | null>(null);
+  const [shown, setShown] = useState(PER_PAGE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState(false);
+  const moreAbort = useRef<AbortController | null>(null);
+  const results = search ? search.games.slice(0, shown) : [];
+  const canLoadMore = !!search && (search.games.length > shown || search.hasMore);
   const [matches, setMatches] = useState<AiMatch[]>([]);
   const [similar, setSimilar] = useState<GameSummary[]>([]);
   const [status, setStatus] = useState<Status>('idle');
@@ -66,7 +75,11 @@ export default function SearchPage() {
 
   // Load the results for the submitted search (by name, or by description).
   useEffect(() => {
-    setResults([]);
+    setSearch(null);
+    setShown(PER_PAGE);
+    setMoreError(false);
+    setLoadingMore(false);
+    moreAbort.current?.abort();
     setMatches([]);
     setSimilar([]);
     if (!query && !aiQuery) {
@@ -81,7 +94,7 @@ export default function SearchPage() {
           setMatches(r.matches);
           setSimilar(r.similar);
         })
-      : searchGames(query, controller.signal).then(setResults);
+      : startSearch(query, controller.signal).then(setSearch);
     work
       .then(() => setStatus('done'))
       .catch((err: Error) => {
@@ -91,6 +104,29 @@ export default function SearchPage() {
       });
     return () => controller.abort();
   }, [query, aiQuery]);
+
+  /** "Load more": the next PER_PAGE games, asking RAWG for another page if we've shown all we have. */
+  async function loadMore() {
+    if (!search || loadingMore) return;
+    setMoreError(false);
+    if (search.games.length >= shown + PER_PAGE || !search.hasMore) {
+      setShown((n) => n + PER_PAGE);
+      return;
+    }
+    const controller = new AbortController();
+    moreAbort.current = controller;
+    setLoadingMore(true);
+    try {
+      const next = await moreResults(search, controller.signal);
+      if (controller.signal.aborted) return;
+      setSearch(next);
+      setShown((n) => n + PER_PAGE);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') setMoreError(true);
+    } finally {
+      if (!controller.signal.aborted) setLoadingMore(false);
+    }
+  }
 
   function submit(term: string) {
     if (term === query) return;
@@ -238,6 +274,20 @@ export default function SearchPage() {
           {results.map((g) => (
             <GameCard key={g.id} game={g} isFavourite={favouriteIds?.has(g.id) ?? false} />
           ))}
+          {canLoadMore && (
+            <button
+              type="button"
+              className="card load-more-card"
+              onClick={loadMore}
+              disabled={loadingMore}
+              aria-busy={loadingMore}
+              data-testid="load-more"
+            >
+              <span className="load-more-plus" aria-hidden>{loadingMore ? '' : '+'}</span>
+              <span className="load-more-label">{loadingMore ? 'Loading…' : 'Load more'}</span>
+              {moreError && <span className="load-more-error">Couldn't load more. Tap to try again.</span>}
+            </button>
+          )}
         </div>
       )}
 

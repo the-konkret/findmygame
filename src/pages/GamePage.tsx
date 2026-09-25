@@ -22,7 +22,10 @@ export default function GamePage() {
   const [notesOpen, setNotesOpen] = useState(false);
   const [hasNote, setHasNote] = useState(false);
   const [noteFocus, setNoteFocus] = useState(0);
+  // Does the game have an "Official news" box? If not, Details moves up under Deals (null = still checking).
+  const [newsFound, setNewsFound] = useState<boolean | null>(null);
   useEffect(() => {
+    setNewsFound(null);
     setNotesOpen(false);
     setHasNote(false);
     setNoteFocus(0);
@@ -62,6 +65,36 @@ export default function GamePage() {
   const stores = (game.stores ?? []).map((s) => s.store.name).join(' · ');
   const developers = names(game.developers);
   const publishers = names(game.publishers);
+
+  // Details: under About, or under Deals when the game has no news (keeps the two columns even).
+  const details = (
+    <aside className="panel game-facts" data-testid="game-facts">
+      <h2>Details</h2>
+      <dl>
+        {game.platforms?.length ? (
+          <Fact label="Platforms"><PlatformChips platforms={game.platforms} /></Fact>
+        ) : null}
+        {game.genres?.length ? <Fact label="Genres">{names(game.genres)}</Fact> : null}
+        {/* one row when the same studio made and published it */}
+        {developers && developers === publishers ? (
+          <Fact label="Developer & publisher">{developers}</Fact>
+        ) : (
+          <>
+            {developers && <Fact label="Developer">{developers}</Fact>}
+            {publishers && <Fact label="Publisher">{publishers}</Fact>}
+          </>
+        )}
+        {game.esrb_rating && <Fact label="Age rating">{game.esrb_rating.name}</Fact>}
+        {stores && <Fact label="Available on">{stores}</Fact>}
+      </dl>
+      <div className="links">
+        {game.website && (
+          <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
+        )}
+        <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
+      </div>
+    </aside>
+  );
 
   return (
     <section className="game-page" data-testid="game-page">
@@ -113,33 +146,7 @@ export default function GamePage() {
             <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
           </article>
 
-          {/* Details: under About, the full width of this column */}
-          <aside className="panel game-facts" data-testid="game-facts">
-            <h2>Details</h2>
-            <dl>
-              {game.platforms?.length ? (
-                <Fact label="Platforms"><PlatformChips platforms={game.platforms} /></Fact>
-              ) : null}
-              {game.genres?.length ? <Fact label="Genres">{names(game.genres)}</Fact> : null}
-              {/* one row when the same studio made and published it */}
-              {developers && developers === publishers ? (
-                <Fact label="Developer & publisher">{developers}</Fact>
-              ) : (
-                <>
-                  {developers && <Fact label="Developer">{developers}</Fact>}
-                  {publishers && <Fact label="Publisher">{publishers}</Fact>}
-                </>
-              )}
-              {game.esrb_rating && <Fact label="Age rating">{game.esrb_rating.name}</Fact>}
-              {stores && <Fact label="Available on">{stores}</Fact>}
-            </dl>
-            <div className="links">
-              {game.website && (
-                <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
-              )}
-              <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
-            </div>
-          </aside>
+          {newsFound !== false && details}
 
           {/* Your note: shown after "Add a note", or straight away if you've written one */}
           <NotesPanel
@@ -153,9 +160,10 @@ export default function GamePage() {
 
         <div className="game-sidebar">
           <DealsPanel gameId={id} game={game} />
+          {newsFound === false && details}
 
 
-          <GameNews gameId={id} />
+          <GameNews gameId={id} onResult={setNewsFound} />
         </div>
       </div>
 

@@ -8,7 +8,7 @@ import NewsCredit from './NewsCredit';
  * "Official news" on a game page: the latest posts by the game's makers on Steam (headline, date, link).
  * Hidden for games that aren't on Steam or have no posts.
  */
-export default function GameNews({ gameId }: { gameId: string }) {
+export default function GameNews({ gameId, onResult }: { gameId: string; onResult?: (hasNews: boolean) => void }) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [appId, setAppId] = useState<string | null>(null);
 
@@ -24,6 +24,11 @@ export default function GameNews({ gameId }: { gameId: string }) {
       .catch(() => !controller.signal.aborted && setItems([]));
     return () => controller.abort();
   }, [gameId]);
+
+  // Tell the page whether there's a box (it rearranges the other boxes around it).
+  useEffect(() => {
+    if (items) onResult?.(items.length > 0);
+  }, [items, onResult]);
 
   if (!items || items.length === 0) return null;
 

@@ -40,6 +40,8 @@ export interface GameDetails extends GameSummary {
 
 interface Paged<T> {
   count: number;
+  /** link to the next page, or null on the last one */
+  next?: string | null;
   results: T[];
 }
 
@@ -61,19 +63,73 @@ async function request<T>(path: string, params: Record<string, string>, signal?:
  * first (finishWord → "killzone") and ask RAWG for that too.
  */
 export async function searchGames(term: string, signal?: AbortSignal, limit = 20): Promise<GameSummary[]> {
-  const ask = (search: string, extra: Record<string, string> = {}) =>
-    request<Paged<GameSummary>>('/games', { search, search_precise: 'true', page_size: '40', ...extra }, signal);
-  const [popular, relevant, finished] = await Promise.all([
-    ask(term, { ordering: '-added' }),
-    ask(term),
-    finishWord(term, signal).then((terms) => Promise.all(terms.map((t) => ask(t, { ordering: '-added' })))),
-  ]);
+  return (await startSearch(term, signal)).games.slice(0, limit);
+}
+
+/**
+ * A search that can go on ("Load more"): every game found so far, best first, and whether RAWG has
+ * further pages. Show them 20 at a time; when they run out, moreResults() asks RAWG for the next page.
+ */
+export interface SearchResults {
+  term: string;
+  games: GameSummary[];
+  /** RAWG has more pages for at least one of the searches */
+  hasMore: boolean;
+  /** internal: the RAWG searches behind it, and the page each has reached */
+  queries: { params: Record<string, string>; page: number; done: boolean }[];
+  /** internal: drop titles that only share a stray word (decided on the first page, kept for the rest) */
+  strict: boolean;
+}
+
+const PAGE_SIZE = '40';
+
+async function askPage(params: Record<string, string>, page: number, signal?: AbortSignal) {
+  return request<Paged<GameSummary>>(
+    '/games',
+    { ...params, search_precise: 'true', page_size: PAGE_SIZE, ...(page > 1 ? { page: String(page) } : {}) },
+    signal,
+  ).catch((e: Error) => {
+    // RAWG answers 404 past the last page: that just means "no more".
+    if (page > 1 && /\(404\)/.test(e.message)) return { count: 0, next: null, results: [] } as Paged<GameSummary>;
+    throw e;
+  });
+}
+
+export async function startSearch(term: string, signal?: AbortSignal): Promise<SearchResults> {
+  const finished = await finishWord(term, signal);
+  const queries: SearchResults['queries'] = [
+    { params: { search: term, ordering: '-added' }, page: 1, done: false },
+    { params: { search: term }, page: 1, done: false },
+    ...finished.map((t) => ({ params: { search: t, ordering: '-added' }, page: 1, done: false })),
+  ];
+  const pages = await Promise.all(queries.map((q) => askPage(q.params, 1, signal)));
+  pages.forEach((p, i) => (queries[i].done = !p.next));
 
   const seen = new Set<number>();
-  const merged = [...popular.results, ...relevant.results, ...finished.flatMap((page) => page.results)].filter(
-    (g) => !seen.has(g.id) && seen.add(g.id),
-  );
-  return rankByTitleMatch(merged, term).slice(0, limit);
+  const merged = pages.flatMap((p) => p.results).filter((g) => !seen.has(g.id) && seen.add(g.id));
+  const { games, strict } = rankSearch(merged, term);
+  return { term, games, hasMore: queries.some((q) => !q.done), queries, strict };
+}
+
+/** The next page of each RAWG search, ranked and added after what's already there (so nothing shown moves). */
+export async function moreResults(current: SearchResults, signal?: AbortSignal): Promise<SearchResults> {
+  let result = current;
+  // A page can hold only weak matches that get filtered out: then try one more, up to 3.
+  for (let tries = 0; tries < 3 && result.hasMore; tries++) {
+    const queries = result.queries.map((q) => ({ ...q }));
+    const open = queries.filter((q) => !q.done);
+    const pages = await Promise.all(open.map((q) => askPage(q.params, q.page + 1, signal)));
+    pages.forEach((p, i) => {
+      open[i].page += 1;
+      open[i].done = !p.next;
+    });
+    const seen = new Set(result.games.map((g) => g.id));
+    const fresh = pages.flatMap((p) => p.results).filter((g) => !seen.has(g.id) && seen.add(g.id));
+    const { games } = rankSearch(fresh, result.term, result.strict);
+    result = { ...result, games: [...result.games, ...games], queries, hasMore: queries.some((q) => !q.done) };
+    if (games.length > 0) break;
+  }
+  return result;
 }
 
 /**
@@ -115,6 +171,15 @@ export function normalize(text: string): string {
 }
 
 export function rankByTitleMatch<T extends { name: string; added?: number }>(games: T[], term: string): T[] {
+  return rankSearch(games, term).games;
+}
+
+/** strict: drop weak matches (by default: only if some title is a good match). */
+function rankSearch<T extends { name: string; added?: number }>(
+  games: T[],
+  term: string,
+  strict?: boolean,
+): { games: T[]; strict: boolean } {
   const query = normalize(term);
   const queryWords = query.split(' ').filter(Boolean);
   const typedLetters = queryWords.reduce((n, w) => n + w.length, 0);
@@ -146,8 +211,8 @@ export function rankByTitleMatch<T extends { name: string; added?: number }>(gam
 
   // If some titles match most of what you typed, drop the ones that only share a stray word or number
   // (no Witcher 3 when you asked for Earthworm Jim 3).
-  const goodMatchExists = ranked.some((x) => x.coverage >= 0.5);
-  return ranked.filter((x) => !goodMatchExists || x.coverage >= 0.5).map((x) => x.game);
+  const dropWeak = strict ?? ranked.some((x) => x.coverage >= 0.5);
+  return { games: ranked.filter((x) => !dropWeak || x.coverage >= 0.5).map((x) => x.game), strict: dropWeak };
 }
 
 /**
