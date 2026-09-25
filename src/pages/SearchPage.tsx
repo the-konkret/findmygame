@@ -111,9 +111,17 @@ export default function SearchPage() {
     if (e.key === 'Enter' && !e.shiftKey) submitDescription(e);
   }
 
+  // After the first tab switch, the boxes no longer grab the cursor by themselves when they appear;
+  // switchMode below decides.
+  const switchedRef = useRef(false);
+
   function switchMode(next: Mode) {
     if (next === mode) return;
+    switchedRef.current = true;
     setMode(next);
+    // Put the cursor in the new box, ready to type. Exception: back on "Search by name" with text already in
+    // the box, where the cursor would pop the suggestions open again; they reopen when you click in or type.
+    if (next === 'name' && input.trim().length >= 2) return;
     setTimeout(() => (next === 'describe' ? describeRef : inputRef).current?.focus(), 0);
   }
 
@@ -159,7 +167,7 @@ export default function SearchPage() {
             {/* Focus the box only on a fresh home page. Coming back to results, it stays inactive so the
                 suggestions don't pop open by themselves. */}
             <div className="search-row">
-              <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!hasResults} />
+              <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!hasResults && !switchedRef.current} />
               {/* Only on the fresh home page, next to the big search box. */}
               {!hasResults && <SurpriseButton />}
             </div>
@@ -178,7 +186,7 @@ export default function SearchPage() {
               placeholder="e.g. an old platformer where you're a worm in a robotic space suit"
               aria-label="Describe the game you're looking for"
               data-testid="describe-input"
-              autoFocus={!hasResults}
+              autoFocus={!hasResults && !switchedRef.current}
             />
             <div className="describe-bar">
               <span className="muted small">
