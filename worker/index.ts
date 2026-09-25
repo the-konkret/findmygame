@@ -3,6 +3,8 @@
 // - Requests to /api/rawg/... are handled here: the secret RAWG key is added and the request goes to RAWG.
 // - /api/steamspy/top100in2weeks: SteamSpy's "most played on Steam" list for the Rankings page (cached 6 h).
 // - /api/complete?q=killz finishes a half-typed last word for the search (worker/complete.ts, cached 1 day).
+// - /api/news and /api/steamnews?appid=…: the games' own announcements from Steam's official API,
+//   headline + date + link only (worker/news.ts, cached 1 hour).
 // - POST /api/describe is the "Describe a game" AI search (worker/describe.ts, Cloudflare Workers AI).
 // - Every 3 hours Cloudflare runs `scheduled` below: the price check for everyone's price alerts
 //   (worker/priceCheck.ts). POST /api/alerts/run with the ALERT_RUN_KEY secret runs it on demand.
@@ -14,6 +16,7 @@
 
 import { handleDescribe, type AiBinding } from './describe';
 import { handleComplete } from './complete';
+import { handleGameNews, handleNews, type TopGame } from './news';
 import { runPriceCheck, type PriceCheckEnv } from './priceCheck';
 
 interface Env extends PriceCheckEnv {
@@ -48,6 +51,12 @@ export default {
     }
     if (url.pathname === '/api/complete') {
       return handleComplete(url, ctx);
+    }
+    if (url.pathname === '/api/steamnews') {
+      return handleGameNews(url, ctx);
+    }
+    if (url.pathname === '/api/news') {
+      return handleNews(ctx, () => topSteamGames(ctx));
     }
     if (url.pathname.startsWith('/api/')) {
       return json({ error: 'Not found' }, 404);
@@ -135,6 +144,14 @@ async function proxySteamSpy(url: URL, ctx: ExecutionContext): Promise<Response>
   });
   if (cache) ctx.waitUntil(cache.put(key, response.clone()));
   return response;
+}
+
+/** SteamSpy's most-played list (the same cached copy the Rankings page uses), for the News page. */
+async function topSteamGames(ctx: ExecutionContext): Promise<TopGame[]> {
+  const res = await proxySteamSpy(new URL('https://findmygame.cache/api/steamspy/top100in2weeks'), ctx);
+  if (!res.ok) throw new Error(`SteamSpy answered ${res.status}`);
+  const data = (await res.json()) as Record<string, TopGame> | TopGame[];
+  return (Array.isArray(data) ? data : Object.values(data)).filter((g) => g && g.appid && g.name);
 }
 
 function json(body: unknown, status: number): Response {

@@ -198,3 +198,25 @@ export function DiceIcon({ size = 22, className = '' }: IconProps) {
     </svg>
   );
 }
+
+/** Folded newspaper (news). */
+export function NewsIcon({ size = 16, className = '' }: IconProps) {
+  return (
+    <svg
+      className={`icon ${className}`}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 5h13v13a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2V5Z" />
+      <path d="M17 9h3v9a2 2 0 0 1-2 2" />
+      <path d="M8 9h5M8 13h5M8 16h3" />
+    </svg>
+  );
+}

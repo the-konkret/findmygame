@@ -4,6 +4,7 @@ import { useLogOut } from '../auth/useLogOut';
 import { useAuth } from '../auth/AuthProvider';
 import { removeAvatar, uploadAvatar } from '../api/avatar';
 import ChangePassword from '../components/ChangePassword';
+import ThemePicker from '../components/ThemePicker';
 
 export default function AccountPage() {
   const { user, loading } = useAuth();
@@ -90,6 +91,8 @@ export default function AccountPage() {
           />
         </div>
       </div>
+
+      <ThemePicker />
 
       <ChangePassword email={email} />
 

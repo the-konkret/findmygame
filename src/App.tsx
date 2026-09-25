@@ -11,11 +11,12 @@ import { useAuth } from './auth/AuthProvider';
 import { recordPageView } from './api/analytics';
 import StatsPage from './pages/StatsPage';
 import RankingsPage from './pages/RankingsPage';
+import NewsPage from './pages/NewsPage';
 import SearchBox from './components/SearchBox';
 import SurpriseButton from './components/SurpriseButton';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
-import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
+import { BackIcon, CogIcon, GiftIcon, NewsIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/rankings" element={<RankingsPage />} />
+          <Route path="/news" element={<NewsPage />} />
           {/* Not linked anywhere: visit statistics */}
           <Route path="/stats" element={<StatsPage />} />
           <Route path="/account" element={<AccountPage />} />
@@ -109,6 +111,7 @@ function UserMenu() {
     return (
       <nav className="nav">
         <RankingsLink />
+        <NewsLink />
         <NavLink to="/login" className="nav-link" data-testid="nav-login">Log in</NavLink>
       </nav>
     );
@@ -121,6 +124,7 @@ function UserMenu() {
   return (
     <nav className="nav">
       <RankingsLink />
+      <NewsLink />
       <NavLink to="/favourites" className="nav-link nav-favourites" aria-label="My favourites" data-testid="nav-favourites">
         <StarIcon size={16} />
         <span className="nav-label">My favourites</span>
@@ -139,6 +143,15 @@ function UserMenu() {
         icon={avatarUrl ? <NavAvatar key={avatarUrl} src={avatarUrl} /> : <CogIcon />}
       />
     </nav>
+  );
+}
+
+function NewsLink() {
+  return (
+    <NavLink to="/news" className="nav-link nav-favourites" aria-label="News" data-testid="nav-news">
+      <NewsIcon size={16} />
+      <span className="nav-label">News</span>
+    </NavLink>
   );
 }
 

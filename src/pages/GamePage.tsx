@@ -7,6 +7,7 @@ import DealsPanel from '../components/DealsPanel';
 import FavouriteButton from '../components/FavouriteButton';
 import WishlistButton from '../components/WishlistButton';
 import NotesPanel from '../components/NotesPanel';
+import GameNews from '../components/GameNews';
 import LoadingImage from '../components/LoadingImage';
 import { BackIcon, NoteIcon } from '../components/Icons';
 
@@ -140,6 +141,8 @@ export default function GamePage() {
               <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
             </div>
           </aside>
+
+          <GameNews gameId={id} />
         </div>
       </div>
 
