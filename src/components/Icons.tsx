@@ -13,7 +13,7 @@ export function StarIcon({ filled = true, size = 16, className = '' }: IconProps
       className={`icon ${className}`}
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="1.1 0.65 21.8 21.8" /* zoomed so it looks as big as the outlined icons */
       aria-hidden="true"
       fill={filled ? 'currentColor' : 'none'}
       stroke="currentColor"
@@ -108,7 +108,7 @@ export function TagIcon({ size = 16, className = '' }: IconProps) {
       className={`icon ${className}`}
       width={size}
       height={size}
-      viewBox="0 0 24 24"
+      viewBox="-1.2 -1.2 25.6 25.6" /* zoomed out: the tag fills more of its box */
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
@@ -118,6 +118,25 @@ export function TagIcon({ size = 16, className = '' }: IconProps) {
     >
       <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
       <circle cx="7" cy="7" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** X (close / remove). Drawn, so it sits exactly in the middle of round buttons. */
+export function CloseIcon({ size = 14, className = '' }: IconProps) {
+  return (
+    <svg
+      className={`icon ${className}`}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.6}
+      strokeLinecap="round"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { describeSearch, MAX_DESCRIPTION, type AiMatch } from '../api/describe';
@@ -31,6 +31,26 @@ export default function SearchPage() {
   const favouriteIds = useFavouriteIds(); // to put a ★ on games you've already saved
 
   const hasResults = Boolean(query || aiQuery);
+
+  // The orange pill behind the active tab slides from one tab to the other.
+  const modesRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+  const [pillReady, setPillReady] = useState(false); // no slide on the very first paint
+  useLayoutEffect(() => {
+    const measure = () => {
+      const active = modesRef.current?.querySelector<HTMLElement>('.search-mode.active');
+      if (active) setPill({ left: active.offsetLeft, width: active.offsetWidth });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    document.fonts?.ready.then(measure); // re-measure once the web font has loaded (text widths change)
+    return () => window.removeEventListener('resize', measure);
+  }, [mode]);
+  useEffect(() => {
+    if (!pill || pillReady) return;
+    const id = requestAnimationFrame(() => setPillReady(true));
+    return () => cancelAnimationFrame(id);
+  }, [pill, pillReady]);
 
   // The address changed (a search was submitted, the logo was clicked, Back/Forward): follow it.
   useEffect(() => {
@@ -102,7 +122,14 @@ export default function SearchPage() {
       <div className={`search-hero ${hasResults ? 'compact' : ''}`}>
         {!hasResults && <h1 className="hero-title">Find your next game</h1>}
 
-        <div className="search-modes" role="tablist" aria-label="How to search">
+        <div className="search-modes" role="tablist" aria-label="How to search" ref={modesRef}>
+          {pill && (
+            <span
+              className={`search-mode-pill ${pillReady ? 'animate' : ''}`}
+              style={{ width: pill.width, transform: `translateX(${pill.left}px)` }}
+              aria-hidden="true"
+            />
+          )}
           <button
             type="button"
             role="tab"
@@ -125,6 +152,8 @@ export default function SearchPage() {
           </button>
         </div>
 
+        {/* key={mode}: the box is rebuilt on each switch, which replays its fade-in */}
+        <div key={mode} className={`mode-panel ${pillReady ? 'animate' : ''}`}>
         {mode === 'name' ? (
           <>
             {/* Focus the box only on a fresh home page. Coming back to results, it stays inactive so the
@@ -166,6 +195,7 @@ export default function SearchPage() {
             </div>
           </form>
         )}
+        </div>
       </div>
 
       {status === 'loading' && (

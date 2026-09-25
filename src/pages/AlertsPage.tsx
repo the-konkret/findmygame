@@ -5,6 +5,7 @@ import { checkAlerts, deleteAlert, onAlertsChanged, type PriceAlert } from '../a
 import type { BestPrice } from '../api/cheapshark';
 import LoadingImage from '../components/LoadingImage';
 import { formatDay, usd } from '../lib/format';
+import { CloseIcon } from '../components/Icons';
 
 /** Every game you've set a price alert on, with your price, today's price and whether it's been reached. */
 export default function AlertsPage() {
@@ -101,7 +102,7 @@ export default function AlertsPage() {
                   title="Remove alert"
                   data-testid="alert-remove"
                 >
-                  ×
+                  <CloseIcon />
                 </button>
               </div>
             );

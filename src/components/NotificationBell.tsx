@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useNotifications, type Notification } from '../hooks/useNotifications';
 import { timeAgo, usd } from '../lib/format';
-import { BellIcon } from './Icons';
+import { BellIcon, CloseIcon } from './Icons';
 
 /**
  * The bell in the top bar, next to the cog / profile picture. The number on it counts unread notifications.
@@ -133,7 +133,7 @@ function NotificationItem({ n, onDismiss }: { n: Notification; onDismiss: () => 
         title="Remove"
         data-testid="notification-dismiss"
       >
-        ×
+        <CloseIcon size={12} />
       </button>
     </li>
   );
