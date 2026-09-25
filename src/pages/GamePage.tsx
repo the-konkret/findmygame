@@ -83,6 +83,9 @@ export default function GamePage() {
             <h2>About</h2>
             <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
           </article>
+
+          {/* Your notes: under About, stretching to fill the space next to Deals and Details */}
+          <NotesPanel game={game} />
         </div>
 
         <div className="game-sidebar">
@@ -108,10 +111,6 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* Your notes: full width at the bottom of the page */}
-      <div className="game-notes">
-        <NotesPanel game={game} />
-      </div>
     </section>
   );
 }

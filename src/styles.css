@@ -349,7 +349,11 @@ img.fade-in.loaded { opacity: 1; }
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
 }
 .game-sidebar { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-.game-body { align-items: start; }
+.game-body { align-items: stretch; } /* both columns as tall as the taller one… */
+.game-sidebar { align-self: start; }  /* …except the sidebar, which keeps its natural height */
+/* My notes fills whatever space is left under About, down to the bottom of the sidebar. */
+.game-main .notes { flex: 1; display: flex; flex-direction: column; }
+.game-main .notes .notes-input { flex: 1; }
 .game-description p { white-space: pre-line; color: #d4d4d8; margin: 0; }
 
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 22px; }
@@ -423,6 +427,7 @@ img.fade-in.loaded { opacity: 1; }
   .game-body .deals { order: 1; }
   .game-body .game-description { order: 2; }
   .game-body .game-facts { order: 3; }
+  .game-body .notes { order: 4; } /* phones: notes last */
   .game-title { font-size: 30px; }
 }
 
@@ -594,7 +599,6 @@ img.fade-in.loaded { opacity: 1; }
 .game-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 
 /* ---------- Notes ---------- */
-.game-notes { margin-top: 18px; } /* notes sit under everything else on the game page */
 .notes-input {
   width: 100%; min-height: 110px; resize: vertical;
   background: var(--surface-2); color: var(--text);
