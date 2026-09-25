@@ -133,7 +133,9 @@ a:hover { color: var(--accent-hover); }
 .describe-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.25); }
 .describe-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .describe-bar .btn-primary { flex-shrink: 0; padding: 10px 22px; }
-.describe-note { text-align: center; margin: 0 0 14px; }
+.describe-heading { font-size: 18px; margin: 8px 0 6px; }
+.describe-heading ~ .describe-heading, .grid + .describe-heading { margin-top: 28px; }
+.describe-note { margin: 0 0 14px; }
 .card-note { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: #d4d4d8; font-style: italic; }
 .hero-hint { margin: 12px 0 0; color: var(--text-dim); font-size: 13px; text-align: center; }
 

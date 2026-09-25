@@ -1,6 +1,7 @@
 // "Describe a game" search. The Worker (worker/describe.ts) asks Cloudflare's AI for its best guesses at
-// the title; here each guess is looked up on RAWG, so only real games are shown, with the AI's reason.
-import { findGameByTitle, type GameSummary } from './rawg';
+// the title, plus RAWG genres and tags that fit the description. Here each guess is looked up on RAWG (so
+// only real games are shown, with the AI's reason), and the genres/tags bring "More games like that".
+import { discoverGames, findGameByTitle, type GameSummary } from './rawg';
 
 export interface AiMatch {
   game: GameSummary;
@@ -8,15 +9,24 @@ export interface AiMatch {
   why: string;
 }
 
-interface Guess {
-  title: string;
-  year: number | null;
-  why: string;
+export interface DescribeResult {
+  /** The AI's named guesses that exist on RAWG, best first. */
+  matches: AiMatch[];
+  /** Popular games in the genres/tags the AI picked, not already in `matches`. */
+  similar: GameSummary[];
+}
+
+interface Answer {
+  games?: { title: string; year: number | null; why: string }[];
+  genres?: string[];
+  tags?: string[];
+  error?: string;
+  debug?: string;
 }
 
 export const MAX_DESCRIPTION = 400;
 
-export async function describeSearch(description: string, signal?: AbortSignal): Promise<AiMatch[]> {
+export async function describeSearch(description: string, signal?: AbortSignal): Promise<DescribeResult> {
   const res = await fetch('/api/describe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -27,25 +37,29 @@ export async function describeSearch(description: string, signal?: AbortSignal):
     throw new Error("Couldn't reach AI search. Check your connection and try again.");
   });
 
-  let data: { games?: Guess[]; error?: string } = {};
+  let data: Answer = {};
   try {
     data = await res.json();
   } catch {
     // e.g. the site hasn't been deployed with AI search yet
   }
   if (!res.ok) throw new Error(data.error ?? `AI search failed (${res.status}).`);
+  if (data.debug) console.info('AI search came back empty:', data.debug);
 
-  // Look the guesses up on RAWG, all at once; drop any the AI made up, and doubles.
   const guesses = data.games ?? [];
-  const found = await Promise.all(
-    guesses.map((g) => findGameByTitle(g.title, g.year, signal).catch(() => null)),
-  );
+  // Look up the named guesses and the genre/tag list at the same time.
+  const [found, similarAll] = await Promise.all([
+    Promise.all(guesses.map((g) => findGameByTitle(g.title, g.year, signal).catch(() => null))),
+    discoverGames({ genres: data.genres ?? [], tags: data.tags ?? [] }, signal).catch(() => [] as GameSummary[]),
+  ]);
+
   const seen = new Set<number>();
   const matches: AiMatch[] = [];
   found.forEach((game, i) => {
-    if (!game || seen.has(game.id)) return;
+    if (!game || seen.has(game.id)) return; // made-up titles and doubles are dropped
     seen.add(game.id);
     matches.push({ game, why: guesses[i].why });
   });
-  return matches;
+  const similar = similarAll.filter((g) => !seen.has(g.id));
+  return { matches, similar };
 }

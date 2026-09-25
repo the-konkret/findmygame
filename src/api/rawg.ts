@@ -150,6 +150,39 @@ export async function findGameByTitle(title: string, year: number | null, signal
 }
 
 /**
+ * Popular games by RAWG genre and tag (e.g. genre "racing" + tag "police" → Need for Speed: Most Wanted…).
+ * Used for the AI search's "More games like that". Tries each tag in turn (with the genres, then alone),
+ * then the genres by themselves, until it has `limit` games.
+ */
+export async function discoverGames(
+  filters: { genres: string[]; tags: string[] },
+  signal?: AbortSignal,
+  limit = 12,
+): Promise<GameSummary[]> {
+  const found = new Map<number, GameSummary>();
+  const genres = filters.genres.join(',');
+  const attempts: Record<string, string>[] = [];
+  for (const tag of filters.tags) {
+    if (genres) attempts.push({ genres, tags: tag });
+    attempts.push({ tags: tag });
+  }
+  if (genres) attempts.push({ genres });
+
+  for (const extra of attempts) {
+    if (found.size >= limit) break;
+    const data = await request<Paged<GameSummary>>(
+      '/games',
+      { ordering: '-added', page_size: String(limit), ...extra },
+      signal,
+    ).catch(() => null);
+    // A tag RAWG doesn't know makes it ignore the filter and return everything (tens of thousands): skip those.
+    if (!data || (extra.tags && data.count > 30000)) continue;
+    for (const g of data.results) if (!found.has(g.id)) found.set(g.id, g);
+  }
+  return [...found.values()].slice(0, limit);
+}
+
+/**
  * A random game for "Surprise me": a random pick from the ~2,000 most popular games on RAWG
  * (50 pages of 40), so the surprise is something real rather than an obscure test upload.
  */

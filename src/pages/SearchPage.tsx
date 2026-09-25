@@ -25,6 +25,7 @@ export default function SearchPage() {
 
   const [results, setResults] = useState<GameSummary[]>([]);
   const [matches, setMatches] = useState<AiMatch[]>([]);
+  const [similar, setSimilar] = useState<GameSummary[]>([]);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
   const favouriteIds = useFavouriteIds(); // to put a ★ on games you've already saved
@@ -47,6 +48,7 @@ export default function SearchPage() {
   useEffect(() => {
     setResults([]);
     setMatches([]);
+    setSimilar([]);
     if (!query && !aiQuery) {
       setStatus('idle');
       return;
@@ -55,7 +57,10 @@ export default function SearchPage() {
     setStatus('loading');
     setError('');
     const work = aiQuery
-      ? describeSearch(aiQuery, controller.signal).then(setMatches)
+      ? describeSearch(aiQuery, controller.signal).then((r) => {
+          setMatches(r.matches);
+          setSimilar(r.similar);
+        })
       : searchGames(query, controller.signal).then(setResults);
     work
       .then(() => setStatus('done'))
@@ -183,7 +188,7 @@ export default function SearchPage() {
       {status === 'done' && query && results.length === 0 && (
         <p className="status" data-testid="search-empty">No games found for “{query}”.</p>
       )}
-      {status === 'done' && aiQuery && matches.length === 0 && (
+      {status === 'done' && aiQuery && matches.length === 0 && similar.length === 0 && (
         <p className="status" data-testid="describe-empty">
           The AI couldn't match that to a game. Try adding details: what you do in it, the setting or look, the
           platform, or roughly when it came out.
@@ -200,10 +205,22 @@ export default function SearchPage() {
 
       {matches.length > 0 && (
         <>
-          <p className="describe-note muted small">AI suggestions, best match first. The AI can be wrong, so check the details.</p>
+          <h2 className="describe-heading">Best guesses</h2>
+          <p className="describe-note muted small">Picked by AI, best match first. The AI can be wrong, so check the details.</p>
           <div className="grid" data-testid="describe-results">
             {matches.map((m) => (
               <GameCard key={m.game.id} game={m.game} note={m.why} isFavourite={favouriteIds?.has(m.game.id) ?? false} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {similar.length > 0 && (
+        <>
+          <h2 className="describe-heading">More games like that</h2>
+          <div className="grid" data-testid="describe-similar">
+            {similar.map((g) => (
+              <GameCard key={g.id} game={g} isFavourite={favouriteIds?.has(g.id) ?? false} />
             ))}
           </div>
         </>

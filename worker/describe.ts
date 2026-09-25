@@ -12,8 +12,27 @@ export interface Guess {
   why: string;
 }
 
+/** The AI's reading of the description as RAWG filters, for the "More games like that" list. */
+export interface Filters {
+  genres: string[];
+  tags: string[];
+}
+
+export interface AiAnswer extends Filters {
+  games: Guess[];
+}
+
 /** Google's Gemma 4 (26B): on Cloudflare's free plan, good general knowledge, cheap per request. */
 export const MODEL = '@cf/google/gemma-4-26b-a4b-it';
+/** A smaller, simpler model to try if Gemma's answer is empty or unreadable. */
+export const BACKUP_MODEL = '@cf/meta/llama-3.1-8b-instruct-fp8';
+
+/** RAWG's genres (their exact names in RAWG's system). */
+export const GENRES = [
+  'action', 'indie', 'adventure', 'role-playing-games-rpg', 'strategy', 'shooter', 'casual', 'simulation',
+  'puzzle', 'arcade', 'platformer', 'racing', 'massively-multiplayer', 'sports', 'fighting', 'family',
+  'board-games', 'educational', 'card',
+];
 
 const MIN_LENGTH = 5;
 export const MAX_LENGTH = 400;
@@ -21,16 +40,16 @@ const MAX_GUESSES = 5;
 
 const SYSTEM_PROMPT = `You help players find video games from a description, which may be precise or very vague.
 Reply with JSON only, no other text, in exactly this shape:
-{"games":[{"title":"Official English title","year":1994,"why":"One short sentence on why it fits."}]}
-How to answer:
-- ALWAYS suggest exactly ${MAX_GUESSES} real, released games. Never return an empty list for a description of a game.
-- If the description points to one specific game, put that game first, then similar games.
-- If the description is vague (e.g. "a game with dragons", "cozy farming game"), suggest the ${MAX_GUESSES} best-known,
-  highest-rated games that fit it well, a mix of classics and recent hits.
-- Use each game's official title as stores list it. Prefer the main game, not a DLC, demo or special edition.
-- "year" is the first release year, or null if unknown.
-- "why" is at most 20 words and refers to the player's description.
-- Only if the text is clearly not about video games at all, reply {"games":[]}.`;
+{"games":[{"title":"Need for Speed: Most Wanted","year":2005,"why":"Street racing while escaping the police."}],"genres":["racing"],"tags":["police","open-world"]}
+Fill in:
+- "games": ALWAYS exactly ${MAX_GUESSES} real, released games. If the description points to one specific game, put it first.
+  If it is vague, pick the best-known, highest-rated games that fit. Official titles as stores list them; main games,
+  not DLC or special editions. "year" = first release year or null. "why" = at most 15 words about the player's description.
+- "genres": 1 or 2 of exactly these: ${GENRES.join(', ')}.
+- "tags": 1 to 3 short lowercase tags a game store would use for this description, words joined by hyphens,
+  e.g. police, cars, dragons, farming, space, zombies, horror, open-world, city-builder, stealth, survival, pixel-graphics.
+Only if the text is clearly not about video games, reply {"games":[],"genres":[],"tags":[]}.
+Answer right away with the JSON; do not explain.`;
 
 // ---- Asking the AI ----
 
@@ -48,52 +67,92 @@ export function replyText(result: unknown): string {
   return '';
 }
 
-/** Reads the model's JSON (tolerating extra text or ``` fences around it) into clean guesses. */
-export function parseGuesses(text: string): Guess[] {
+/** Reads the model's JSON (tolerating extra text or ``` fences around it) into clean guesses and filters. */
+export function parseAnswer(text: string): AiAnswer {
+  const empty: AiAnswer = { games: [], genres: [], tags: [] };
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
-  if (start < 0 || end <= start) return [];
-  let data: unknown;
+  if (start < 0 || end <= start) return empty;
+  let data: { games?: unknown; genres?: unknown; tags?: unknown };
   try {
     data = JSON.parse(text.slice(start, end + 1));
   } catch {
-    return [];
+    return empty;
   }
-  const list = (data as { games?: unknown })?.games;
-  if (!Array.isArray(list)) return [];
 
+  const games: Guess[] = [];
   const seen = new Set<string>();
-  const guesses: Guess[] = [];
-  for (const item of list) {
+  for (const item of Array.isArray(data?.games) ? data.games : []) {
     const g = item as { title?: unknown; year?: unknown; why?: unknown };
     const title = typeof g.title === 'string' ? g.title.trim().slice(0, 120) : '';
     if (!title || seen.has(title.toLowerCase())) continue;
     seen.add(title.toLowerCase());
     const year = Number(g.year);
-    guesses.push({
+    games.push({
       title,
       year: Number.isInteger(year) && year > 1950 && year < 2100 ? year : null,
       why: typeof g.why === 'string' ? g.why.trim().slice(0, 200) : '',
     });
-    if (guesses.length >= MAX_GUESSES) break;
+    if (games.length >= MAX_GUESSES) break;
   }
-  return guesses;
+
+  const words = (v: unknown) => (Array.isArray(v) ? v : []).filter((x): x is string => typeof x === 'string');
+  const genres = [...new Set(words(data?.genres).map((g) => g.trim().toLowerCase()))].filter((g) => GENRES.includes(g)).slice(0, 2);
+  const tags = [
+    ...new Set(
+      words(data?.tags).map((t) => t.trim().toLowerCase().replace(/[\s_]+/g, '-')).filter((t) => /^[a-z0-9-]{2,30}$/.test(t)),
+    ),
+  ].slice(0, 3);
+
+  return { games, genres, tags };
 }
 
-export async function guessGames(ai: AiBinding, description: string): Promise<Guess[]> {
-  const result = await ai.run(MODEL, {
+/** Just the title guesses (kept for simple callers). */
+export function parseGuesses(text: string): Guess[] {
+  return parseAnswer(text).games;
+}
+
+async function askModel(ai: AiBinding, model: string, description: string): Promise<{ answer: AiAnswer; text: string }> {
+  const result = await ai.run(model, {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: description },
     ],
-    max_tokens: 900,
+    max_tokens: 1200,
+    max_completion_tokens: 1200,
     temperature: 0.3,
+    // Gemma 4 "thinks" before answering; for this job that only costs time and can use up the whole
+    // answer budget before any JSON is written. Ask for no thinking (models that don't know these ignore them).
+    reasoning_effort: 'low',
+    chat_template_kwargs: { enable_thinking: false },
   });
   const text = replyText(result);
-  const guesses = parseGuesses(text);
-  // Shows up in Cloudflare → Worker → Logs, to see what the AI said when nothing came back.
-  if (guesses.length === 0) console.log('AI search: no games for', JSON.stringify(description), '→', text.slice(0, 500));
-  return guesses;
+  return { answer: parseAnswer(text), text };
+}
+
+/** Asks Gemma; if its answer is empty or unreadable, asks the backup model. */
+export async function askAi(ai: AiBinding, description: string): Promise<AiAnswer & { debug?: string }> {
+  let first: { answer: AiAnswer; text: string } | null = null;
+  let firstError = '';
+  try {
+    first = await askModel(ai, MODEL, description);
+    if (first.answer.games.length > 0 || first.answer.tags.length > 0) return first.answer;
+  } catch (err) {
+    firstError = (err as Error).message ?? '';
+    if (/neuron|quota|allocation/i.test(firstError)) throw err; // out of free allowance: the backup would fail too
+  }
+  const second = await askModel(ai, BACKUP_MODEL, description);
+  if (second.answer.games.length > 0 || second.answer.tags.length > 0) return second.answer;
+
+  // Both came back empty: say what they said, to see why (also shown in Cloudflare → Worker → Logs).
+  const debug = `Gemma: ${firstError || first?.text.slice(0, 300) || '(nothing)'} | Llama: ${second.text.slice(0, 300) || '(nothing)'}`;
+  console.log('AI search: no games for', JSON.stringify(description), '→', debug);
+  return { ...second.answer, debug };
+}
+
+/** Title guesses only (older name, kept for the tests). */
+export async function guessGames(ai: AiBinding, description: string): Promise<Guess[]> {
+  return (await askAi(ai, description)).games;
 }
 
 // ---- Keeping it within the free allowance ----
@@ -154,9 +213,9 @@ export async function handleDescribe(request: Request, env: DescribeEnv): Promis
     return json({ error: "You've used AI search a lot in the last hour. Please try again a bit later." }, 429);
   }
 
-  let games: Guess[];
+  let answer: AiAnswer & { debug?: string };
   try {
-    games = await guessGames(env.AI, clean);
+    answer = await askAi(env.AI, clean);
   } catch (err) {
     const message = (err as Error).message ?? '';
     // Workers AI says so when the free daily allowance is used up.
@@ -167,10 +226,10 @@ export async function handleDescribe(request: Request, env: DescribeEnv): Promis
     return json({ error: 'AI search is having trouble right now. Please try again in a moment.' }, 502);
   }
 
-  const response = new Response(JSON.stringify({ games }), {
+  const response = new Response(JSON.stringify(answer), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `public, max-age=${CACHE_SECONDS}` },
   });
-  if (cache && games.length > 0) await cache.put(cacheKey, response.clone());
+  if (cache && answer.games.length > 0) await cache.put(cacheKey, response.clone());
   return response;
 }
 
