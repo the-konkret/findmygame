@@ -1028,3 +1028,20 @@ button.stat-tile.selected { border-color: var(--accent); box-shadow: inset 0 0 0
 @media (max-width: 600px), (hover: none) and (pointer: coarse) {
   .suggestion-all kbd { display: none; }
 }
+
+/* Phones: the top bar slides up out of view while scrolling down, back in when scrolling up
+   (useHideOnScroll). No transform while showing, so the bell's list and the ☰ menu stay put. */
+@media (max-width: 600px) {
+  .topbar { transition: transform 0.25s ease; }
+  .topbar.scrolled-away { transform: translateY(-100%); }
+  /* Back on the game picture: phones already have the Back arrow in the top bar */
+  .game-hero .btn-back { display: none; }
+}
+@media (max-width: 600px) and (prefers-reduced-motion: reduce) {
+  .topbar { transition: none; }
+}
+
+/* Phones: a little more room around the footer line */
+@media (max-width: 600px) {
+  .footer { padding-top: 22px; padding-bottom: calc(26px + env(safe-area-inset-bottom)); }
+}

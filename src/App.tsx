@@ -17,6 +17,7 @@ import SurpriseButton from './components/SurpriseButton';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
 import MobileMenu from './components/MobileMenu';
+import { useHideOnScroll } from './hooks/useHideOnScroll';
 import { BackIcon, CogIcon, GiftIcon, NewsIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
 
 export default function App() {
@@ -32,10 +33,12 @@ export default function App() {
     window.scrollTo({ top: 0 });
   }, [pathname]);
 
+  // Phones: the top bar slides away while scrolling down, and comes back when scrolling up.
+  const barHidden = useHideOnScroll(pathname);
+
   return (
     <div className="app">
-      {/* signed-in: on very narrow phones the logo shows just its ring, to make room for the icons */}
-      <header className={`topbar ${user ? 'signed-in' : ''}`}>
+      <header className={`topbar ${user ? 'signed-in' : ''} ${barHidden ? 'scrolled-away' : ''}`}>
         <div className="topbar-left">
           {pathname !== '/' && <TopBarBack />}
           <Link to="/" className="brand" data-testid="brand-link" aria-label="FindMyGame home">
