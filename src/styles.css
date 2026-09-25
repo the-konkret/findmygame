@@ -323,12 +323,13 @@ img.fade-in.loaded { opacity: 1; }
 .game-hero-shade {
   position: relative; /* above the picture */
   /* Taller on wide screens so more of the artwork shows. */
-  min-height: clamp(320px, 30vw, 440px); padding: 20px 28px 26px;
-  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  min-height: clamp(280px, 26vw, 380px); padding: 20px 28px 24px;
+  /* Back sits at the top; title, badges and wishlist are kept together at the bottom. */
+  display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start;
   /* Light at the top so the art stays visible, dark at the bottom so the title and badges stay readable. */
   background: linear-gradient(to bottom, rgba(11, 11, 12, 0.15), rgba(11, 11, 12, 0.3) 45%, rgba(11, 11, 12, 0.95));
 }
-.game-title { font-size: 40px; margin: 80px 0 12px; line-height: 1.15; text-shadow: 0 2px 12px #000; }
+.game-title { font-size: 40px; margin: auto 0 10px; padding-top: 40px; line-height: 1.15; text-shadow: 0 2px 12px #000; }
 .game-badges { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .pill {
@@ -567,7 +568,7 @@ img.fade-in.loaded { opacity: 1; }
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.fav-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.fav-wrap { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .icon { display: block; flex-shrink: 0; }
 .btn-fav {
   /* icon + label, centred on both axes the same way on every device */
@@ -652,7 +653,7 @@ img.fade-in.loaded { opacity: 1; }
   .game-hero-shade { min-height: 240px; padding: 16px; }
   .game-hero-corner { top: 12px; right: 12px; }
   .fav-star { width: 42px; height: 42px; }
-  .game-title { font-size: 26px; margin-top: 48px; }
+  .game-title { font-size: 26px; padding-top: 36px; }
   .panel { padding: 16px; }
   /* Phones: back arrow, logo and all the top-bar icons on one row */
   .nav { gap: 2px; }
