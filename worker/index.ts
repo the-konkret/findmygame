@@ -17,7 +17,7 @@ interface Env {
 }
 
 // Only the endpoints the app uses, so this can't be used as an open door to the whole RAWG API.
-const ALLOWED = /^games(\/[\w-]+(\/stores)?)?$/;
+const ALLOWED = /^games(\/[\w-]+(\/(stores|game-series))?)?$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {

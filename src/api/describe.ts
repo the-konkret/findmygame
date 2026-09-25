@@ -47,19 +47,21 @@ export async function describeSearch(description: string, signal?: AbortSignal):
   if (data.debug) console.info('AI search came back empty:', data.debug);
 
   const guesses = data.games ?? [];
-  // Look up the named guesses and the genre/tag list at the same time.
-  const [found, similarAll] = await Promise.all([
-    Promise.all(guesses.map((g) => findGameByTitle(g.title, g.year, signal).catch(() => null))),
-    discoverGames({ genres: data.genres ?? [], tags: data.tags ?? [] }, signal).catch(() => [] as GameSummary[]),
-  ]);
-
+  // First find the named guesses on RAWG (made-up titles and doubles are dropped)…
+  const found = await Promise.all(guesses.map((g) => findGameByTitle(g.title, g.year, signal).catch(() => null)));
   const seen = new Set<number>();
   const matches: AiMatch[] = [];
   found.forEach((game, i) => {
-    if (!game || seen.has(game.id)) return; // made-up titles and doubles are dropped
+    if (!game || seen.has(game.id)) return;
     seen.add(game.id);
     matches.push({ game, why: guesses[i].why });
   });
+
+  // …then "More games like that": the top guess's series, and games with the AI's tags.
+  const similarAll = await discoverGames(
+    { genres: data.genres ?? [], tags: data.tags ?? [] },
+    { seriesOf: matches[0]?.game.id, signal },
+  ).catch(() => [] as GameSummary[]);
   const similar = similarAll.filter((g) => !seen.has(g.id));
   return { matches, similar };
 }

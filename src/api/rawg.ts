@@ -149,37 +149,70 @@ export async function findGameByTitle(title: string, year: number | null, signal
   return best?.game ?? null;
 }
 
+interface TaggedGame extends GameSummary {
+  tags?: { slug: string }[];
+}
+
 /**
- * Popular games by RAWG genre and tag (e.g. genre "racing" + tag "police" → Need for Speed: Most Wanted…).
- * Used for the AI search's "More games like that". Tries each tag in turn (with the genres, then alone),
- * then the genres by themselves, until it has `limit` games.
+ * "More games like that" for the AI search:
+ *  1. the rest of the series of the AI's top guess (e.g. every Worms game), then
+ *  2. popular games in the main genre carrying the AI's tags, scored so SPECIFIC tags count most:
+ *     a tag only 12 games have ("worms") says far more than one thousands have ("turn-based").
+ *     Games that only share a broad tag are dropped. No "anything in the genre" filler.
  */
 export async function discoverGames(
   filters: { genres: string[]; tags: string[] },
-  signal?: AbortSignal,
-  limit = 12,
+  options: { seriesOf?: number; signal?: AbortSignal; limit?: number } = {},
 ): Promise<GameSummary[]> {
-  const found = new Map<number, GameSummary>();
-  const genres = filters.genres.join(',');
-  const attempts: Record<string, string>[] = [];
-  for (const tag of filters.tags) {
-    if (genres) attempts.push({ genres, tags: tag });
-    attempts.push({ tags: tag });
-  }
-  if (genres) attempts.push({ genres });
+  const { seriesOf, signal, limit = 12 } = options;
+  // Only the main genre: RAWG treats "racing,action" as racing OR action, which lets in unrelated games.
+  const genre = filters.genres[0] ?? '';
 
-  for (const extra of attempts) {
-    if (found.size >= limit) break;
-    const data = await request<Paged<GameSummary>>(
-      '/games',
-      { ordering: '-added', page_size: String(limit), ...extra },
-      signal,
-    ).catch(() => null);
-    // A tag RAWG doesn't know makes it ignore the filter and return everything (tens of thousands): skip those.
-    if (!data || (extra.tags && data.count > 30000)) continue;
-    for (const g of data.results) if (!found.has(g.id)) found.set(g.id, g);
+  const [series, ...byTag] = await Promise.all([
+    seriesOf
+      ? request<Paged<GameSummary>>(`/games/${seriesOf}/game-series`, { page_size: '12' }, signal).catch(() => null)
+      : Promise.resolve(null),
+    ...filters.tags.map((tag) =>
+      request<Paged<TaggedGame>>(
+        '/games',
+        { ordering: '-added', page_size: '20', tags: tag, ...(genre ? { genres: genre } : {}) },
+        signal,
+      )
+        .then((data) => ({ tag, data }))
+        .catch(() => null),
+    ),
+  ]);
+
+  // How much each tag is worth: rarer = more telling. A tag RAWG doesn't know is ignored by RAWG
+  // (it returns everything, tens of thousands), so it's worth nothing.
+  const weight = new Map<string, number>();
+  for (const r of byTag) {
+    if (!r || r.data.count === 0 || r.data.count > 30000) continue;
+    weight.set(r.tag, 1 / Math.log10(r.data.count + 10));
   }
-  return [...found.values()].slice(0, limit);
+
+  const scored = new Map<number, { game: GameSummary; points: number }>();
+  for (const r of byTag) {
+    if (!r || !weight.has(r.tag)) continue;
+    for (const g of r.data.results) {
+      if ((g.added ?? 0) < 20) continue; // skip obscure uploads almost nobody has added
+      if (scored.has(g.id)) continue;
+      const own = new Set((g.tags ?? []).map((t) => t.slug));
+      own.add(r.tag); // it came back for this tag, so it has it
+      let points = 0;
+      for (const [tag, w] of weight) if (own.has(tag)) points += w;
+      points += Math.log10((g.added ?? 0) + 1) * 0.04; // a little nudge for well-known games
+      scored.set(g.id, { game: g, points });
+    }
+  }
+  const ranked = [...scored.values()].sort((a, b) => b.points - a.points);
+  const best = ranked[0]?.points ?? 0;
+  const byTags = ranked.filter((x) => x.points >= best * 0.6).map((x) => x.game);
+
+  const result = new Map<number, GameSummary>();
+  for (const g of series?.results ?? []) if ((g.added ?? 0) >= 5) result.set(g.id, g);
+  for (const g of byTags) if (!result.has(g.id)) result.set(g.id, g);
+  return [...result.values()].slice(0, limit);
 }
 
 /**
