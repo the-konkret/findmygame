@@ -386,7 +386,14 @@ img.fade-in.loaded { opacity: 1; }
 /* Back button: drawn arrow, lined up exactly with the word */
 .btn-back { display: inline-flex; align-items: center; gap: 6px; }
 .btn-back .icon { transition: transform 0.2s ease; }
-.btn-back:hover .icon, .btn-back:focus-visible .icon { transform: translateX(-3px); }
+.btn-back:focus-visible .icon { transform: translateX(-3px); }
+@media (hover: hover) {
+  .btn-back:hover .icon { transform: translateX(-3px); }
+}
+/* Touch screens: a tap on Back just goes back: no arrow nudge, no orange flash */
+@media (hover: none) {
+  .btn-ghost.btn-back:hover, .btn-ghost.btn-back:active { border-color: var(--border); color: var(--text); }
+}
 @media (prefers-reduced-motion: reduce) { .btn-back .icon { transition: none; } }
 
 .game-body {
@@ -457,13 +464,26 @@ img.fade-in.loaded { opacity: 1; }
 .btn-alert { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; }
 .deals-error { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 
-.game-facts dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; }
+/* Details: a simple spec sheet, label on the left, value on the right, a thin line between rows */
+.game-facts dl { margin: 0; }
+.game-facts .fact {
+  display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: baseline;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.game-facts .fact:first-child { border-top: none; padding-top: 2px; }
 .game-facts dt { color: var(--text-dim); font-size: 13px; }
-.game-facts dd { margin: 0; font-size: 14px; }
-.links { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; font-size: 14px; }
+.game-facts dd { margin: 0; font-size: 14px; line-height: 1.5; min-width: 0; }
+@media (max-width: 600px) {
+  .game-facts .fact { grid-template-columns: 1fr; gap: 2px; }
+}
+/* platforms: icon + name + versions, in a line */
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chip .icon { color: var(--accent); flex-shrink: 0; position: relative; top: 1px; }
+.chip-extra { color: var(--text-dim); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 16px; font-size: 14px; }
 
-/* Narrow screens: one column, in the order that matters most on a phone:
-   deals, your notes, the description, then the details. */
+/* Narrow screens: one column: deals, the description, details, news, your notes. */
 @media (max-width: 860px) {
   .game-body { display: flex; flex-direction: column; }
   /* (more specific than the .game-main rule further down, which otherwise wins and breaks the order) */
@@ -508,7 +528,6 @@ img.fade-in.loaded { opacity: 1; }
   background: none; border: none; border-radius: 50%; color: var(--text); cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.topbar-back:active { background: var(--surface-2); color: var(--accent); }
 
 /* ---------- Navigation ---------- */
 .nav { display: flex; align-items: center; gap: 14px; min-width: 0; }
@@ -916,4 +935,18 @@ button.stat-tile.selected { border-color: var(--accent); box-shadow: inset 0 0 0
 .news-more { display: inline-block; margin-bottom: 8px; }
 @media (max-width: 600px) {
   .news-item { padding: 12px 14px; }
+}
+
+/* Phones: on the home page, "Surprise me" is just the die, to the right of the search box */
+@media (max-width: 600px) {
+  .search-row { display: flex; align-items: stretch; gap: 10px; }
+  .search-row .search-box { flex: 1; min-width: 0; }
+  .search-row .surprise { position: relative; left: auto; top: auto; height: auto; margin: 0; flex-shrink: 0; }
+  .search-row .surprise-label { display: none; }
+  .search-row .surprise { width: 48px; } /* square, as tall as the box */
+  .search-row .btn-surprise { width: 100%; height: 100%; padding: 0; justify-content: center; }
+  .search-row .surprise .error-text {
+    position: absolute; top: calc(100% + 8px); right: 0; width: 220px; z-index: 30; text-align: left;
+    padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  }
 }

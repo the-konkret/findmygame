@@ -29,7 +29,7 @@ export default function SurpriseButton({ compact = false }: { compact?: boolean 
         className="btn-surprise"
         onClick={surprise}
         disabled={busy}
-        aria-label={compact ? 'Surprise me: open a random game' : undefined}
+        aria-label="Surprise me: open a random game"
         title={compact ? 'Surprise me' : undefined}
         data-testid="surprise-button"
       >

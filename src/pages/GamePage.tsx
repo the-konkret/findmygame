@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getGame, type GameDetails } from '../api/rawg';
 import { favourites, wishlist } from '../api/userData';
@@ -8,6 +8,7 @@ import FavouriteButton from '../components/FavouriteButton';
 import WishlistButton from '../components/WishlistButton';
 import NotesPanel from '../components/NotesPanel';
 import GameNews from '../components/GameNews';
+import PlatformChips from '../components/PlatformChips';
 import LoadingImage from '../components/LoadingImage';
 import { BackIcon, NoteIcon } from '../components/Icons';
 
@@ -58,8 +59,9 @@ export default function GamePage() {
   if (!game) return <GamePageSkeleton />;
 
   const names = (list?: { name: string }[]) => (list ?? []).map((x) => x.name).join(', ');
-  const platforms = (game.platforms ?? []).map((p) => p.platform.name).join(', ');
-  const stores = (game.stores ?? []).map((s) => s.store.name).join(', ');
+  const stores = (game.stores ?? []).map((s) => s.store.name).join(' · ');
+  const developers = names(game.developers);
+  const publishers = names(game.publishers);
 
   return (
     <section className="game-page" data-testid="game-page">
@@ -111,6 +113,34 @@ export default function GamePage() {
             <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
           </article>
 
+          {/* Details: under About, the full width of this column */}
+          <aside className="panel game-facts" data-testid="game-facts">
+            <h2>Details</h2>
+            <dl>
+              {game.platforms?.length ? (
+                <Fact label="Platforms"><PlatformChips platforms={game.platforms} /></Fact>
+              ) : null}
+              {game.genres?.length ? <Fact label="Genres">{names(game.genres)}</Fact> : null}
+              {/* one row when the same studio made and published it */}
+              {developers && developers === publishers ? (
+                <Fact label="Developer & publisher">{developers}</Fact>
+              ) : (
+                <>
+                  {developers && <Fact label="Developer">{developers}</Fact>}
+                  {publishers && <Fact label="Publisher">{publishers}</Fact>}
+                </>
+              )}
+              {game.esrb_rating && <Fact label="Age rating">{game.esrb_rating.name}</Fact>}
+              {stores && <Fact label="Available on">{stores}</Fact>}
+            </dl>
+            <div className="links">
+              {game.website && (
+                <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
+              )}
+              <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
+            </div>
+          </aside>
+
           {/* Your note: shown after "Add a note", or straight away if you've written one */}
           <NotesPanel
             game={game}
@@ -124,23 +154,6 @@ export default function GamePage() {
         <div className="game-sidebar">
           <DealsPanel gameId={id} game={game} />
 
-          <aside className="panel game-facts" data-testid="game-facts">
-            <h2>Details</h2>
-            <dl>
-              {platforms && (<><dt>Platforms</dt><dd>{platforms}</dd></>)}
-              {game.genres?.length ? (<><dt>Genres</dt><dd>{names(game.genres)}</dd></>) : null}
-              {game.developers?.length ? (<><dt>Developer</dt><dd>{names(game.developers)}</dd></>) : null}
-              {game.publishers?.length ? (<><dt>Publisher</dt><dd>{names(game.publishers)}</dd></>) : null}
-              {stores && (<><dt>Available on</dt><dd>{stores}</dd></>)}
-              {game.esrb_rating && (<><dt>Age rating</dt><dd>{game.esrb_rating.name}</dd></>)}
-            </dl>
-            <div className="links">
-              {game.website && (
-                <a href={game.website} target="_blank" rel="noreferrer">Official website ↗</a>
-              )}
-              <a href={`https://rawg.io/games/${game.slug}`} target="_blank" rel="noreferrer">View on RAWG ↗</a>
-            </div>
-          </aside>
 
           <GameNews gameId={id} />
         </div>
@@ -181,6 +194,16 @@ function GamePageSkeleton() {
         </div>
       </div>
     </section>
+  );
+}
+
+/** One label + value in the Details box. */
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="fact">
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
   );
 }
 
