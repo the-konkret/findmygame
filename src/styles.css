@@ -379,9 +379,8 @@ img.fade-in.loaded { opacity: 1; }
   .game-body > .game-main, .game-body > .game-sidebar { display: contents; }
   .game-body { align-items: stretch; } /* every box full width */
   .game-body .deals { order: 1; }
-  .game-body .notes { order: 2; }
-  .game-body .game-description { order: 3; }
-  .game-body .game-facts { order: 4; }
+  .game-body .game-description { order: 2; }
+  .game-body .game-facts { order: 3; }
   .game-title { font-size: 30px; }
 }
 
@@ -552,6 +551,7 @@ img.fade-in.loaded { opacity: 1; }
 .game-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 
 /* ---------- Notes ---------- */
+.game-notes { margin-top: 18px; } /* notes sit under everything else on the game page */
 .notes-input {
   width: 100%; min-height: 110px; resize: vertical;
   background: var(--surface-2); color: var(--text);

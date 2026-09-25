@@ -79,8 +79,6 @@ export default function GamePage() {
 
       <div className="game-body">
         <div className="game-main">
-          <NotesPanel game={game} />
-
           <article className="panel game-description">
             <h2>About</h2>
             <p data-testid="game-description">{game.description_raw || 'No description available.'}</p>
@@ -108,6 +106,11 @@ export default function GamePage() {
             </div>
           </aside>
         </div>
+      </div>
+
+      {/* Your notes: full width at the bottom of the page */}
+      <div className="game-notes">
+        <NotesPanel game={game} />
       </div>
     </section>
   );
