@@ -52,8 +52,7 @@ export default function DealsPanel({ gameId, game }: { gameId: string; game: Gam
 
       {state.kind === 'not-found' && (
         <p className="muted" data-testid="deals-none">
-          No PC store prices found for this game. Console stores (PlayStation, Xbox, Nintendo) have no free
-          price API, so they aren't covered.
+          No PC store prices found for this game.
         </p>
       )}
 
