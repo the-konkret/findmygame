@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchGames, type GameSummary } from '../api/rawg';
 import { useDebounce } from '../hooks/useDebounce';
 import LoadingImage from './LoadingImage';
+import { SearchIcon } from './Icons';
 
 const MAX_SUGGESTIONS = 6;
 
@@ -121,7 +122,9 @@ export default function SearchBox({ value, onChange, onSubmit, inputRef, autoFoc
 
   return (
     <div className={`search-box ${compact ? 'compact' : ''}`} ref={boxRef}>
-      <span className="search-icon" aria-hidden onClick={countSecretTap} data-testid="search-icon">⌕</span>
+      <span className="search-icon" aria-hidden onClick={countSecretTap} data-testid="search-icon">
+        <SearchIcon size={compact ? 16 : 20} />
+      </span>
       <input
         ref={inputRef}
         type="search"

@@ -10,12 +10,18 @@ export function useHideOnScroll(resetKey: unknown): boolean {
   useEffect(() => {
     setHidden(false); // a new page starts with the bar showing
     const phone = window.matchMedia('(max-width: 600px)');
-    let lastY = window.scrollY;
+    // Where you are, kept within the page: at the very top and bottom, phones (Safari especially) let the
+    // page "bounce" past the edge and spring back, which would otherwise look like scrolling the other way.
+    const position = () => {
+      const bottom = document.documentElement.scrollHeight - window.innerHeight;
+      return Math.min(Math.max(window.scrollY, 0), Math.max(bottom, 0));
+    };
+    let lastY = position();
     let frame = 0;
 
     const check = () => {
       frame = 0;
-      const y = window.scrollY;
+      const y = position();
       const delta = y - lastY;
       if (!phone.matches || y < 80) setHidden(false); // near the top: always show
       else if (delta > 8) setHidden(true); // scrolling down

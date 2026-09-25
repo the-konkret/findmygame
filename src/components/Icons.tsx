@@ -252,3 +252,14 @@ export function LogOutIcon({ size = 18, className = '' }: IconProps) {
     </svg>
   );
 }
+
+/** Magnifying glass (search box). */
+export function SearchIcon({ size = 20, className = '' }: IconProps) {
+  return (
+    <svg className={`icon ${className}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5 20 20" />
+    </svg>
+  );
+}
