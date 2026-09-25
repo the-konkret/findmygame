@@ -14,5 +14,9 @@
   },
   // Cloudflare's AI models, for the "Describe a game" search (free daily allowance on the free plan).
   "ai": { "binding": "AI" },
+  // Price check for everyone's price alerts, every 3 hours (times in UTC). See worker/priceCheck.ts.
+  "triggers": { "crons": ["0 */3 * * *"] },
+  // Plain settings (not secret). The secret key goes in the Cloudflare dashboard, never here.
+  "vars": { "SUPABASE_URL": "https://rmbswrzxmefxoimriiny.supabase.co" },
   "observability": { "enabled": true }
 }

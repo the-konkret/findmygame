@@ -83,7 +83,16 @@ After that, every `git push` to `main` rebuilds and redeploys the site. Its addr
 On a game page (Deals box), logged-in users can set "Notify me when the price drops" with their own price.
 While FindMyGame is open, the app checks prices (on opening, every 30 minutes, and when you come back to the tab);
 when a game reaches your price, it appears under the bell in the top bar, with today's price.
-There are no emails and nothing runs on the server: notifications appear the next time you open the site.
+On top of that, Cloudflare runs a price check every 3 hours (`worker/priceCheck.ts`, `"triggers"` in `wrangler.jsonc`),
+so alerts are marked as reached even when nobody has the site open; the notification waits under the bell.
+No emails are sent.
+
+Setup for the scheduled check (Cloudflare → the `findmygame` Worker → Settings → Variables and Secrets, type **Secret**):
+- `SUPABASE_SECRET_KEY`: Supabase → Project Settings → API Keys → Secret keys (`sb_secret_...`). It can read every
+  user's alerts, so it only ever lives in Cloudflare as a Secret.
+- `ALERT_RUN_KEY` (optional): any long random text; lets you run a check by hand:
+  `Invoke-RestMethod -Method Post -Uri https://findmygame.mktestbb.workers.dev/api/alerts/run -Headers @{ Authorization = "Bearer YOUR_KEY" }`
+Results of each run show in Cloudflare → the Worker → Logs.
 
 One-time setup: run `supabase/price-alerts.sql` in the Supabase SQL Editor.
 
@@ -122,6 +131,7 @@ src/components/PriceAlertBox.tsx      "Notify me when the price drops", in the D
 supabase/price-alerts.sql    price alerts table and rules
 public/favicon.svg           tab icon (plus favicon-32.png and apple-touch-icon.png)
 worker/describe.ts           "Describe it" AI search (Cloudflare Workers AI)
+worker/priceCheck.ts         price check every 3 hours for everyone's price alerts
 src/api/describe.ts          AI search in the browser: asks the Worker, then finds each guess on RAWG
 src/styles.css               theme colours and layout
 playwright.config.ts         test settings (which site, browsers, reports)
