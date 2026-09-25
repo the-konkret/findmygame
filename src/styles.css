@@ -101,7 +101,7 @@ a:hover { color: var(--accent-hover); }
   font-size: 15px; font-weight: 600; cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
 }
-.surprise-die { color: var(--accent); font-size: 22px; line-height: 1; transition: transform 0.3s; }
+.surprise-die { color: var(--accent); display: inline-flex; line-height: 1; transition: transform 0.3s; }
 .btn-surprise:disabled { opacity: 0.7; cursor: wait; }
 .btn-surprise:disabled .surprise-die { animation: roll 0.6s linear infinite; }
 @keyframes roll { to { transform: rotate(360deg); } }
@@ -446,7 +446,6 @@ img.fade-in.loaded { opacity: 1; }
 /* "Surprise me" next to it: a smaller pill, the same height as the box */
 .surprise.compact { position: relative; left: auto; top: auto; height: auto; margin: 0; flex-shrink: 0; align-self: stretch; }
 .surprise.compact .btn-surprise { height: 100%; padding: 0 14px; gap: 6px; font-size: 14px; }
-.surprise.compact .surprise-die { font-size: 19px; }
 .surprise.compact .error-text {
   position: absolute; top: calc(100% + 8px); right: 0; left: auto; width: 220px; z-index: 30;
   padding: 8px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;

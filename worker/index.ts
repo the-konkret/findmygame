@@ -2,6 +2,7 @@
 //
 // - Requests to /api/rawg/... are handled here: the secret RAWG key is added and the request goes to RAWG.
 // - /api/steamspy/top100in2weeks: SteamSpy's "most played on Steam" list for the Rankings page (cached 6 h).
+// - /api/complete?q=killz finishes a half-typed last word for the search (worker/complete.ts, cached 1 day).
 // - POST /api/describe is the "Describe a game" AI search (worker/describe.ts, Cloudflare Workers AI).
 // - Every 3 hours Cloudflare runs `scheduled` below: the price check for everyone's price alerts
 //   (worker/priceCheck.ts). POST /api/alerts/run with the ALERT_RUN_KEY secret runs it on demand.
@@ -12,6 +13,7 @@
 // never in the code.
 
 import { handleDescribe, type AiBinding } from './describe';
+import { handleComplete } from './complete';
 import { runPriceCheck, type PriceCheckEnv } from './priceCheck';
 
 interface Env extends PriceCheckEnv {
@@ -43,6 +45,9 @@ export default {
     }
     if (url.pathname === '/api/describe') {
       return handleDescribe(request, env);
+    }
+    if (url.pathname === '/api/complete') {
+      return handleComplete(url, ctx);
     }
     if (url.pathname.startsWith('/api/')) {
       return json({ error: 'Not found' }, 404);

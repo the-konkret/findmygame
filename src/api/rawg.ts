@@ -57,15 +57,45 @@ async function request<T>(path: string, params: Record<string, string>, signal?:
  * "witcher" first, and "popularity" matches ANY word you typed, so for "earthworm jim 3" its top 40
  * is Witcher 3, Dark Souls III, Far Cry 3… and no Earthworm Jim at all. So we ask for both at once,
  * merge them, and rank here: how much of what you typed is in the title first, then popularity.
+ * RAWG also only matches whole words, so while you're still typing one ("killz"), we finish it
+ * first (finishWord → "killzone") and ask RAWG for that too.
  */
 export async function searchGames(term: string, signal?: AbortSignal, limit = 20): Promise<GameSummary[]> {
-  const ask = (extra: Record<string, string>) =>
-    request<Paged<GameSummary>>('/games', { search: term, search_precise: 'true', page_size: '40', ...extra }, signal);
-  const [popular, relevant] = await Promise.all([ask({ ordering: '-added' }), ask({})]);
+  const ask = (search: string, extra: Record<string, string> = {}) =>
+    request<Paged<GameSummary>>('/games', { search, search_precise: 'true', page_size: '40', ...extra }, signal);
+  const [popular, relevant, finished] = await Promise.all([
+    ask(term, { ordering: '-added' }),
+    ask(term),
+    finishWord(term, signal).then((terms) => Promise.all(terms.map((t) => ask(t, { ordering: '-added' })))),
+  ]);
 
   const seen = new Set<number>();
-  const merged = [...popular.results, ...relevant.results].filter((g) => !seen.has(g.id) && seen.add(g.id));
+  const merged = [...popular.results, ...relevant.results, ...finished.flatMap((page) => page.results)].filter(
+    (g) => !seen.has(g.id) && seen.add(g.id),
+  );
   return rankByTitleMatch(merged, term).slice(0, limit);
+}
+
+/**
+ * "killz" → ["killzone"], "hollow kn" → ["hollow knight"]: the search with its last, half-typed word
+ * finished, from real game titles (worker/complete.ts). Empty when the word looks finished (you typed a
+ * space after it, or it's a whole word already) or if that service is unavailable: the search then
+ * simply works as before.
+ */
+async function finishWord(term: string, signal?: AbortSignal): Promise<string[]> {
+  if (/\s$/.test(term)) return [];
+  const words = normalize(term).split(' ').filter(Boolean);
+  const last = words[words.length - 1] ?? '';
+  if (last.length < 3 || !/[a-z]/.test(last)) return [];
+  try {
+    const res = await fetch(`/api/complete?${new URLSearchParams({ q: term })}`, { signal });
+    if (!res.ok) return [];
+    const { words: endings = [] } = (await res.json()) as { words?: string[] };
+    return endings.slice(0, 2).map((word) => [...words.slice(0, -1), word].join(' '));
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e;
+    return [];
+  }
 }
 
 // Roman numerals as digits, so "baldurs gate 3" finds "Baldur's Gate III". ("i" is left alone: "I Am Bread".)

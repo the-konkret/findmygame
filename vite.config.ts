@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
           target: 'https://findmygame.mktestbb.workers.dev',
           changeOrigin: true,
         },
+        // Finishing half-typed words ("killz" → "killzone") is also done by the live site's Worker.
+        '/api/complete': {
+          target: 'https://findmygame.mktestbb.workers.dev',
+          changeOrigin: true,
+        },
         // Rankings → Most played: on the live site the Worker fetches SteamSpy; locally we go straight there.
         '/api/steamspy': {
           target: 'https://steamspy.com',

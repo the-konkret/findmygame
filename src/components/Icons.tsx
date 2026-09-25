@@ -182,3 +182,19 @@ export function TrophyIcon({ size = 16, className = '' }: IconProps) {
     </svg>
   );
 }
+
+/** Die showing five: a rounded square with five dots ("Surprise me"). */
+export function DiceIcon({ size = 22, className = '' }: IconProps) {
+  return (
+    <svg className={`icon ${className}`} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5" fill="none" stroke="currentColor" strokeWidth={2} />
+      <g fill="currentColor">
+        <circle cx="8" cy="8" r="1.9" />
+        <circle cx="16" cy="8" r="1.9" />
+        <circle cx="12" cy="12" r="1.9" />
+        <circle cx="8" cy="16" r="1.9" />
+        <circle cx="16" cy="16" r="1.9" />
+      </g>
+    </svg>
+  );
+}
