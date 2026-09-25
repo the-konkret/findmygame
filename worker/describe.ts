@@ -19,15 +19,18 @@ const MIN_LENGTH = 5;
 export const MAX_LENGTH = 400;
 const MAX_GUESSES = 5;
 
-const SYSTEM_PROMPT = `You identify video games from a player's description.
+const SYSTEM_PROMPT = `You help players find video games from a description, which may be precise or very vague.
 Reply with JSON only, no other text, in exactly this shape:
-{"games":[{"title":"Official English title","year":1994,"why":"One short sentence on why it matches."}]}
-Rules:
-- Up to ${MAX_GUESSES} real, released games, best match first. Fewer is fine if you're unsure.
-- Use each game's official title as stores list it (no subtitles you're unsure of).
+{"games":[{"title":"Official English title","year":1994,"why":"One short sentence on why it fits."}]}
+How to answer:
+- ALWAYS suggest exactly ${MAX_GUESSES} real, released games. Never return an empty list for a description of a game.
+- If the description points to one specific game, put that game first, then similar games.
+- If the description is vague (e.g. "a game with dragons", "cozy farming game"), suggest the ${MAX_GUESSES} best-known,
+  highest-rated games that fit it well, a mix of classics and recent hits.
+- Use each game's official title as stores list it. Prefer the main game, not a DLC, demo or special edition.
 - "year" is the first release year, or null if unknown.
-- "why" is at most 20 words and speaks to the player's description.
-- If the text doesn't describe a video game, reply {"games":[]}.`;
+- "why" is at most 20 words and refers to the player's description.
+- Only if the text is clearly not about video games at all, reply {"games":[]}.`;
 
 // ---- Asking the AI ----
 
@@ -83,10 +86,14 @@ export async function guessGames(ai: AiBinding, description: string): Promise<Gu
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: description },
     ],
-    max_tokens: 500,
-    temperature: 0.2,
+    max_tokens: 900,
+    temperature: 0.3,
   });
-  return parseGuesses(replyText(result));
+  const text = replyText(result);
+  const guesses = parseGuesses(text);
+  // Shows up in Cloudflare → Worker → Logs, to see what the AI said when nothing came back.
+  if (guesses.length === 0) console.log('AI search: no games for', JSON.stringify(description), '→', text.slice(0, 500));
+  return guesses;
 }
 
 // ---- Keeping it within the free allowance ----
