@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useLogOut } from '../auth/useLogOut';
 import { useAuth } from '../auth/AuthProvider';
 import { removeAvatar, uploadAvatar } from '../api/avatar';
+import ChangePassword from '../components/ChangePassword';
 
 export default function AccountPage() {
   const { user, loading } = useAuth();
@@ -89,6 +90,8 @@ export default function AccountPage() {
           />
         </div>
       </div>
+
+      <ChangePassword email={email} />
 
       <div className="panel account-section">
         <h2>Account details</h2>

@@ -648,6 +648,7 @@ img.fade-in.loaded { opacity: 1; }
 }
 .auth-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232, 101, 10, 0.2); }
 .auth-form .btn-primary { padding: 11px; font-size: 15px; margin-top: 4px; }
+.password-form { max-width: 360px; }
 
 /* Phones */
 @media (max-width: 600px) {
