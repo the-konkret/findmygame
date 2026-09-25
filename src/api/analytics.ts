@@ -58,8 +58,29 @@ export interface SiteStats {
   pages: { path: string; views: number; visitors: number }[];
 }
 
-export async function getSiteStats(days = 30): Promise<SiteStats> {
+/** The totals, or null when you're not the site admin (the database only answers the admin). */
+export async function getSiteStats(days = 30): Promise<SiteStats | null> {
   const { data, error } = await supabase.rpc('site_stats', { days });
   if (error) throw new Error(`Couldn't load the statistics: ${error.message}`);
-  return data as SiteStats;
+  return (data as SiteStats | null) ?? null;
+}
+
+export type Period = 'today' | 'week' | 'month' | 'all';
+
+export interface Visitor {
+  /** "user": a logged-in account (who = email); "visitor": a logged-out browser (who = short random code) */
+  kind: 'user' | 'visitor';
+  who: string;
+  first_seen: string;
+  last_seen: string;
+  views: number;
+  pages: number;
+  last_page: string;
+}
+
+/** Who visited in a period, newest visit first (admin only). */
+export async function getVisitors(period: Period): Promise<Visitor[]> {
+  const { data, error } = await supabase.rpc('site_visitors', { period });
+  if (error) throw new Error(`Couldn't load the visitors: ${error.message}`);
+  return (data as Visitor[]) ?? [];
 }

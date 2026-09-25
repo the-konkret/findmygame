@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSiteStats, type SiteStats } from '../api/analytics';
+import { getSiteStats, getVisitors, type Period, type SiteStats, type Visitor } from '../api/analytics';
+import { useAuth } from '../auth/AuthProvider';
 
 // Chart colours (checked for colour-blind readers against the dark background):
 const IN_COLOR = '#e8650a'; // logged-in users: the site's orange
@@ -17,18 +18,39 @@ const dayLabel = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'shor
 const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const num = new Intl.NumberFormat('en-GB');
 
-/** Visit statistics. Not linked from anywhere: open /stats directly. Shows totals only, never who visited. */
+/** Visit statistics, for the site admin only (the database checks). Not linked from anywhere: open /stats. */
 export default function StatsPage() {
+  const { user, loading } = useAuth();
   const [stats, setStats] = useState<SiteStats | null>(null);
+  const [notAdmin, setNotAdmin] = useState(false);
   const [error, setError] = useState('');
+  const [period, setPeriod] = useState<Period>('today');
 
   useEffect(() => {
-    getSiteStats(30).then(setStats).catch((e: Error) => setError(e.message));
-  }, []);
+    if (loading) return;
+    setStats(null);
+    setNotAdmin(false);
+    getSiteStats(30)
+      .then((s) => (s ? setStats(s) : setNotAdmin(true)))
+      .catch((e: Error) => setError(e.message));
+  }, [loading, user?.id]);
+
+  if (notAdmin) {
+    return (
+      <section className="stats-page">
+        <h1 className="page-title">Statistics</h1>
+        <p className="status" data-testid="stats-not-admin">
+          This page is only for the site admin.{' '}
+          {user ? 'Your account is not the admin account.' : <><Link to="/login" state={{ from: '/stats' }}>Log in</Link> with the admin account.</>}
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="stats-page">
       <h1 className="page-title">Statistics</h1>
+      {stats && <p className="muted small">Click a box to see who visited in that period.</p>}
       {error && <p className="status error" data-testid="stats-error">{error}</p>}
       {!stats && !error && <p className="status">Loading…</p>}
 
@@ -38,7 +60,14 @@ export default function StatsPage() {
             {RANGES.map(({ key, label }) => {
               const t = stats.totals[key];
               return (
-                <div key={key} className="panel stat-tile">
+                <button
+                  type="button"
+                  key={key}
+                  className={`panel stat-tile ${period === key ? 'selected' : ''}`}
+                  onClick={() => setPeriod(key)}
+                  aria-pressed={period === key}
+                  data-testid={`stat-tile-${key}`}
+                >
                   <span className="stat-label">{label}</span>
                   <span className="stat-number">{num.format(t.visitors)}</span>
                   <span className="stat-unit">{t.visitors === 1 ? 'visitor' : 'visitors'}</span>
@@ -51,7 +80,7 @@ export default function StatsPage() {
                     {num.format(t.logged_out_visitors)} logged out
                   </span>
                   <span className="stat-views">{num.format(t.views)} page views</span>
-                </div>
+                </button>
               );
             })}
             <div className="panel stat-tile">
@@ -60,6 +89,8 @@ export default function StatsPage() {
               <span className="stat-unit">registered</span>
             </div>
           </div>
+
+          <VisitorList period={period} />
 
           <DailyChart daily={stats.daily} />
 
@@ -92,6 +123,76 @@ export default function StatsPage() {
         </>
       )}
     </section>
+  );
+}
+
+const PERIOD_TITLE: Record<Period, string> = {
+  today: 'Today',
+  week: 'Last 7 days',
+  month: 'Last 30 days',
+  all: 'All time',
+};
+
+function two(n: number) {
+  return String(n).padStart(2, '0');
+}
+/** dd.mm.yyyy hh:mm in your own time zone */
+function when(iso: string) {
+  const d = new Date(iso);
+  return `${two(d.getDate())}.${two(d.getMonth() + 1)}.${d.getFullYear()} ${two(d.getHours())}:${two(d.getMinutes())}`;
+}
+
+/** Everyone who visited in the chosen period (click a tile above to change it), newest first. */
+function VisitorList({ period }: { period: Period }) {
+  const [rows, setRows] = useState<Visitor[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setRows(null);
+    setError('');
+    getVisitors(period)
+      .then((r) => active && setRows(r))
+      .catch((e: Error) => active && setError(e.message));
+    return () => {
+      active = false;
+    };
+  }, [period]);
+
+  return (
+    <div className="panel stats-section" data-testid="stats-visitors">
+      <h2>Visitors · {PERIOD_TITLE[period]}{rows ? ` (${rows.length}${rows.length === 500 ? '+' : ''})` : ''}</h2>
+      {error && <p className="error-text">{error}</p>}
+      {!rows && !error && <p className="muted">Loading…</p>}
+      {rows?.length === 0 && <p className="muted">No visits in this period.</p>}
+      {rows && rows.length > 0 && (
+        <div className="stats-table-wrap">
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th>Who</th><th>First visit</th><th>Last visit</th>
+                <th className="num">Views</th><th className="num">Pages</th><th>Last page</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((v) => (
+                <tr key={v.kind + v.who + v.first_seen}>
+                  <td className="who">
+                    <span className="stat-key" style={{ background: v.kind === 'user' ? IN_COLOR : OUT_COLOR }} />
+                    {v.kind === 'user' ? v.who : <span className="muted">Anonymous · {v.who}</span>}
+                  </td>
+                  <td className="nowrap">{when(v.first_seen)}</td>
+                  <td className="nowrap">{when(v.last_seen)}</td>
+                  <td className="num">{num.format(v.views)}</td>
+                  <td className="num">{num.format(v.pages)}</td>
+                  <td><Link to={v.last_page}>{v.last_page}</Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

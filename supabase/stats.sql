@@ -24,7 +24,27 @@ create policy "Record page views" on public.page_views
 revoke all on public.page_views from anon, authenticated;
 grant insert (visitor_id, user_id, path) on public.page_views to anon, authenticated;
 
--- Totals for the /stats page. Runs with the owner's rights (so it can count), but only ever returns counts.
+-- Who may see /stats: the accounts listed here (just you). Nobody can read or change this list through the
+-- website; you add yourself once with the line at the bottom of this file.
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users (id) on delete cascade
+);
+alter table public.admins enable row level security; -- and no policies: invisible to the website
+revoke all on public.admins from anon, authenticated;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated;
+
+-- Totals for the /stats page (admins only; everyone else gets nothing). Runs with the owner's rights so it can count.
 -- Days are counted in Polish time.
 create or replace function public.site_stats(days integer default 30)
 returns json
@@ -77,10 +97,59 @@ as $$
                    'logged_in_users', logged_in_users, 'logged_out_visitors', logged_out_visitors)) from totals),
     'daily',    (select json_agg(json_build_object('day', day, 'logged_in', logged_in, 'logged_out', logged_out, 'views', views)) from daily),
     'pages',    (select coalesce(json_agg(json_build_object('path', path, 'views', views, 'visitors', visitors)), '[]'::json) from pages)
-  );
+  )
+  where public.is_admin();
 $$;
 
 revoke all on function public.site_stats(integer) from public;
 grant execute on function public.site_stats(integer) to anon, authenticated;
 
+-- Who visited in a period (admins only): one row per logged-in account (with its email) or per anonymous
+-- browser (a short random code), newest visit first. period: 'today', 'week', 'month' or 'all'.
+create or replace function public.site_visitors(period text default 'today')
+returns json
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  today date := (now() at time zone 'Europe/Warsaw')::date;
+  since date;
+  result json;
+begin
+  if not public.is_admin() then
+    raise exception 'Only the site admin can see this.';
+  end if;
+  since := case period when 'today' then today when 'week' then today - 6 when 'month' then today - 29 else date '2000-01-01' end;
+
+  select coalesce(json_agg(row_to_json(x) order by x.last_seen desc), '[]'::json) into result
+  from (
+    select
+      case when pv.user_id is null then 'visitor' else 'user' end                     as kind,
+      case when pv.user_id is null then left(pv.anon_id::text, 8) else u.email end     as who,
+      min(pv.created_at)                                                                as first_seen,
+      max(pv.created_at)                                                                as last_seen,
+      count(*)                                                                          as views,
+      count(distinct pv.path)                                                           as pages,
+      (array_agg(pv.path order by pv.created_at desc))[1]                               as last_page
+    from (
+      -- logged in: grouped by account; logged out: grouped by browser
+      select p.*, case when p.user_id is null then p.visitor_id end as anon_id from public.page_views p
+    ) pv
+    left join auth.users u on u.id = pv.user_id
+    where (pv.created_at at time zone 'Europe/Warsaw')::date >= since
+    group by pv.user_id, u.email, pv.anon_id
+    order by max(pv.created_at) desc
+    limit 500
+  ) x;
+  return result;
+end;
+$$;
+revoke all on function public.site_visitors(text) from public;
+grant execute on function public.site_visitors(text) to anon, authenticated;
+
 notify pgrst, 'reload schema';
+
+-- ▼ Make YOUR account the admin: put your FindMyGame login email below, then run just this line.
+-- insert into public.admins (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
