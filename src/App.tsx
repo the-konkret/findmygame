@@ -8,6 +8,8 @@ import WishlistPage from './pages/WishlistPage';
 import AlertsPage from './pages/AlertsPage';
 import AccountPage from './pages/AccountPage';
 import { useAuth } from './auth/AuthProvider';
+import { recordPageView } from './api/analytics';
+import StatsPage from './pages/StatsPage';
 import SearchBox from './components/SearchBox';
 import AccountMenu from './components/AccountMenu';
 import NotificationBell from './components/NotificationBell';
@@ -15,6 +17,12 @@ import { BackIcon, CogIcon, GiftIcon, StarIcon, TagIcon } from './components/Ico
 
 export default function App() {
   const { pathname } = useLocation();
+  const { user, loading } = useAuth();
+  // Count the visit (for /stats), once we know whether the visitor is logged in.
+  useEffect(() => {
+    if (!loading) recordPageView(pathname, user?.id ?? null);
+  }, [pathname, loading, user?.id]);
+
   // Start each new page at the top (otherwise a game opened from far down the results starts scrolled).
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -43,6 +51,8 @@ export default function App() {
           <Route path="/favourites" element={<FavouritesPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          {/* Not linked anywhere: visit statistics */}
+          <Route path="/stats" element={<StatsPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="*" element={<p className="status">Page not found. <Link to="/">Go to search</Link></p>} />
         </Routes>

@@ -108,6 +108,16 @@ shows only games that exist, with the AI's one-line reason.
 - On your computer, `npm run dev` sends AI searches to the live site (the AI only runs on Cloudflare),
   so it works locally once the AI search has been pushed.
 
+## Visit statistics (/stats)
+
+`/stats` (not linked anywhere) shows visitors today / last 7 days / last 30 days / all time, split into logged-in
+users and logged-out visitors, page views, registered accounts, a day-by-day chart and the most visited pages.
+Each page view is stored in Supabase (`page_views`) with an anonymous per-browser ID; no IPs, names or emails.
+Nobody can read the rows: the page only gets totals from the `site_stats()` function.
+Visits while running `npm run dev` are not counted.
+
+One-time setup: run `supabase/stats.sql` in the Supabase SQL Editor.
+
 ## Project layout
 
 ```

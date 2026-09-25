@@ -9,6 +9,9 @@ export default function ChangePassword({ email }: { email: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  // Browsers fill saved passwords into empty password boxes on their own. Read-only until you click in stops
+  // that (they don't fill read-only boxes); "new-password" tells them not to offer the saved one here either.
+  const [unlocked, setUnlocked] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -37,7 +40,8 @@ export default function ChangePassword({ email }: { email: string }) {
       <form className="auth-form password-form" onSubmit={onSubmit}>
         <label>
           Current password
-          <input type="password" autoComplete="current-password" required value={current}
+          <input type="password" autoComplete="new-password" required value={current}
+            readOnly={!unlocked} onFocus={() => setUnlocked(true)}
             onChange={(e) => setCurrent(e.target.value)} data-testid="password-current" />
         </label>
         <label>
