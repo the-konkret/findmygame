@@ -455,6 +455,8 @@ img.fade-in.loaded { opacity: 1; }
 }
 .price-alert .icon { color: var(--accent); vertical-align: -3px; flex-shrink: 0; }
 .price-alert-text { margin: 0; font-size: 14px; color: var(--text-soft); line-height: 1.5; }
+/* the bell sits in the sentence, on its first line (icons are blocks by default) */
+.price-alert-text .icon { display: inline-block; margin-right: 2px; }
 .price-alert-text strong { color: var(--text); }
 .price-alert-label { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .price-alert-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
