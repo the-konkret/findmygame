@@ -171,6 +171,14 @@ export default function SearchPage() {
     describeRef.current?.blur();
   }
 
+  // The description box grows with what you write (up to a limit, then it scrolls), instead of a drag handle.
+  useLayoutEffect(() => {
+    const box = describeRef.current;
+    if (!box) return;
+    box.style.height = 'auto';
+    box.style.height = `${box.scrollHeight + 2}px`; // + the top and bottom border
+  }, [description, mode]);
+
   // Enter searches; Shift+Enter starts a new line.
   function onDescribeKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) submitDescription(e);
