@@ -20,8 +20,35 @@ import MobileMenu from './components/MobileMenu';
 import { useHideOnScroll } from './hooks/useHideOnScroll';
 import { BackIcon, CogIcon, GiftIcon, NewsIcon, StarIcon, TagIcon, TrophyIcon } from './components/Icons';
 
+/** The browser tab's name for each page: "My favourites | FindMyGame". (A game page sets its own.) */
+const SITE = 'FindMyGame';
+const PAGE_NAMES: Record<string, string> = {
+  '/favourites': 'My favourites',
+  '/wishlist': 'Wishlist',
+  '/alerts': 'Alerts',
+  '/rankings': 'Rankings',
+  '/news': 'News',
+  '/account': 'Settings',
+  '/login': 'Log in',
+  '/stats': 'Stats',
+};
+
+function tabTitle(pathname: string, search: string): string {
+  if (pathname === '/') {
+    const params = new URLSearchParams(search);
+    const q = params.get('q')?.trim();
+    const described = params.get('ai')?.trim();
+    if (described && (params.get('tab') === 'ai' || !q)) return `Describe it | ${SITE}`;
+    if (q) return `${q} | ${SITE}`;
+    return SITE;
+  }
+  if (pathname.startsWith('/game/')) return SITE; // until the game loads (GamePage then names it)
+  const name = PAGE_NAMES[pathname.replace(/\/$/, '')];
+  return name ? `${name} | ${SITE}` : `Page not found | ${SITE}`;
+}
+
 export default function App() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { user, loading } = useAuth();
   // Count the visit (for /stats), once we know whether the visitor is logged in.
   useEffect(() => {
@@ -32,6 +59,10 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [pathname]);
+
+  useEffect(() => {
+    document.title = tabTitle(pathname, search);
+  }, [pathname, search]);
 
   // Phones: the top bar slides away while scrolling down, and comes back when scrolling up.
   const barHidden = useHideOnScroll(pathname);

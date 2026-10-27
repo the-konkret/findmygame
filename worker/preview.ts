@@ -54,7 +54,7 @@ export async function gamePageWithPreview(
   if (!game) return page;
 
   const url = new URL(request.url);
-  const title = `${game.name} – ${SITE_NAME}`;
+  const title = `${game.name} | ${SITE_NAME}`;
   const description = summary(game);
   const tags = [
     meta('name', 'description', description),
