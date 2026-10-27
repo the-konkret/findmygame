@@ -205,7 +205,7 @@ function RankCard({ rank, title, image, meta, corner, to, findByName }: CardProp
     <>
       <div className="card-image">
         {image ? <LoadingImage src={image} alt={title} /> : <div className="card-image-empty">No image</div>}
-        <span className={`rank-number ${rank <= 3 ? 'podium' : ''}`} aria-label={`Number ${rank}`}>{rank}</span>
+        <span className={`rank-number ${rank <= 3 ? `podium podium-${rank}` : ''}`} aria-label={`Number ${rank}`}>{rank}</span>
         {corner}
       </div>
       <div className="card-body">
