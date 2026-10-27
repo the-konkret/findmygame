@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { moreResults, startSearch, type GameSummary, type SearchFilters, type SearchResults, type SearchSort } from '../api/rawg';
-import SearchFilterBar from '../components/SearchFilterBar';
+import SearchFilterBar, { FilterDrawer } from '../components/SearchFilterBar';
+import { useIsPhone } from '../hooks/useIsPhone';
 import { describeSearch, MAX_DESCRIPTION, type AiMatch } from '../api/describe';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
@@ -24,19 +25,24 @@ export default function SearchPage() {
   const query = (params.get('q') ?? '').trim();
   const aiQuery = (params.get('ai') ?? '').trim();
   const aiTab = params.get('tab') === 'ai';
-  //   &platform=switch&genre=…&year=2015&sort=newest  filters for the name search
+  //   &platform=pc,nintendo&genre=racing&year=2015,2016&sort=newest  filters for the name search
+  const list = (name: string) => (params.get(name) ?? '').split(',').filter(Boolean);
   const filters: SearchFilters = {
-    platform: params.get('platform') || undefined,
-    genre: params.get('genre') || undefined,
-    year: params.get('year') || undefined,
+    platforms: list('platform'),
+    genres: list('genre'),
+    years: list('year'),
     sort: (params.get('sort') as SearchSort | null) || undefined,
   };
-  const filterKey = [filters.platform, filters.genre, filters.year, filters.sort].join('|');
-  const hasFilters = Boolean(filters.platform || filters.genre || filters.year);
+  const filterKey = [params.get('platform'), params.get('genre'), params.get('year'), filters.sort].join('|');
+  const chosenCount = (filters.platforms?.length ?? 0) + (filters.genres?.length ?? 0) + (filters.years?.length ?? 0);
+  const hasFilters = chosenCount > 0;
   // how many are in use (shown on the Filters button), counting a non-default sort too
-  const filterCount = [filters.platform, filters.genre, filters.year, filters.sort].filter(Boolean).length;
-  // The filter bar: hidden until the Filters button is pressed (open straight away if filters are in use)
-  const [filtersOpen, setFiltersOpen] = useState(filterCount > 0);
+  const filterCount = chosenCount + (filters.sort ? 1 : 0);
+  // Computers: the filter bar, hidden until the Filters button is pressed (open straight away if filters are
+  // in use). Phones: the button opens a drawer from the bottom instead (closed to start with).
+  const isPhone = useIsPhone();
+  const [filtersOpen, setFiltersOpen] = useState(() => filterCount > 0 && !window.matchMedia('(max-width: 600px)').matches);
+  const closeFilters = useCallback(() => setFiltersOpen(false), []);
 
   /** The address with some settings changed (empty ones removed), keeping everything else. */
   function paramsWith(changes: Record<string, string | undefined>): Record<string, string> {
@@ -179,6 +185,12 @@ export default function SearchPage() {
     } finally {
       if (!controller.signal.aborted) setLoadingMore(false);
     }
+  }
+
+  function applyFilters(f: SearchFilters) {
+    // replace: changing filters doesn't fill Back with a step per tap
+    const join = (values?: string[]) => (values?.length ? values.join(',') : undefined);
+    setParams(paramsWith({ platform: join(f.platforms), genre: join(f.genres), year: join(f.years), sort: f.sort }), { replace: true });
   }
 
   function submit(term: string) {
@@ -338,11 +350,11 @@ export default function SearchPage() {
       </div>
 
       {/* Filters and sorting for a name search */}
-      {mode === 'name' && query && filtersOpen && (
-        <SearchFilterBar
-          filters={filters}
-          onChange={(f) => setParams(paramsWith({ platform: f.platform, genre: f.genre, year: f.year, sort: f.sort }))}
-        />
+      {mode === 'name' && query && !isPhone && filtersOpen && (
+        <SearchFilterBar filters={filters} onChange={applyFilters} />
+      )}
+      {mode === 'name' && query && isPhone && (
+        <FilterDrawer filters={filters} onChange={applyFilters} open={filtersOpen} onClose={closeFilters} />
       )}
 
       {/* Only the results of the tab you're on */}

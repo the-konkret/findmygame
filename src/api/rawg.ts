@@ -128,22 +128,28 @@ export const SORT_OPTIONS: { key: SearchSort; label: string }[] = [
 ];
 
 export interface SearchFilters {
-  /** a PLATFORM_FILTERS key */
-  platform?: string;
-  /** a GENRE_FILTERS key */
-  genre?: string;
-  /** e.g. "2015" */
-  year?: string;
+  /** PLATFORM_FILTERS keys (any of them) */
+  platforms?: string[];
+  /** GENRE_FILTERS keys (any of them) */
+  genres?: string[];
+  /** release years, e.g. ["2015", "2016"] (any of them) */
+  years?: string[];
   sort?: SearchSort;
 }
 
-/** The filters as RAWG search settings (asked for on the server, so they cover all of RAWG). */
+/**
+ * The filters as RAWG search settings (asked for on the server, so they cover all of RAWG).
+ * Several choices of one kind mean "any of these": RAWG takes comma lists for platforms and genres,
+ * and several date ranges joined with "." for years.
+ */
 function filterParams(f: SearchFilters): Record<string, string> {
   const out: Record<string, string> = {};
-  const platform = PLATFORM_FILTERS.find((p) => p.key === f.platform);
-  if (platform) out.parent_platforms = platform.rawgId;
-  if (f.genre && GENRE_FILTERS.some((g) => g.key === f.genre)) out.genres = f.genre;
-  if (f.year && /^\d{4}$/.test(f.year)) out.dates = `${f.year}-01-01,${f.year}-12-31`;
+  const platforms = PLATFORM_FILTERS.filter((p) => f.platforms?.includes(p.key)).map((p) => p.rawgId);
+  if (platforms.length) out.parent_platforms = platforms.join(',');
+  const genres = GENRE_FILTERS.filter((g) => f.genres?.includes(g.key)).map((g) => g.key);
+  if (genres.length) out.genres = genres.join(',');
+  const years = (f.years ?? []).filter((y) => /^\d{4}$/.test(y)).sort();
+  if (years.length) out.dates = years.map((y) => `${y}-01-01,${y}-12-31`).join('.');
   return out;
 }
 
