@@ -194,7 +194,7 @@ a:hover { color: var(--accent-hover); }
 .describe-bar .btn-primary { flex-shrink: 0; padding: 10px 22px; }
 .describe-heading { font-size: 18px; margin: 8px 0 6px; }
 .describe-heading ~ .describe-heading, .grid + .describe-heading { margin-top: 28px; }
-.describe-note { margin: 0 0 14px; }
+.describe-note, .muted.describe-note { margin: 0 0 14px; } /* (.muted further down would otherwise zero it) */
 .card-note { margin: 8px 0 0; font-size: 13px; line-height: 1.4; color: var(--text-soft); font-style: italic; }
 .hero-hint { margin: 12px 0 0; color: var(--text-dim); font-size: 13px; text-align: center; }
 
