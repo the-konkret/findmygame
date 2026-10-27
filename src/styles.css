@@ -254,8 +254,9 @@ a:hover { color: var(--accent-hover); }
   }
 }
 .card:active { border-color: var(--accent); }
-.card-image { position: relative; aspect-ratio: 16 / 9; background: var(--surface-2); }
-.card-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-image { position: relative; aspect-ratio: 16 / 9; background: var(--surface-2); overflow: hidden; }
+/* the picture fills the 16:9 box and is cropped to it: a tall picture (phone screenshots) can't stretch the card */
+.card-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* Alerts page: game tiles with the price you set */
 .alert-card-wrap { position: relative; display: flex; }
@@ -1079,3 +1080,44 @@ button.stat-tile.selected { border-color: var(--accent); box-shadow: inset 0 0 0
 }
 .card-platforms { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-meta { min-height: 1.5em; }
+
+/* ---------- Search filters (platform, genre, year, sort) above the results ---------- */
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 18px; }
+.filter-select { border-color: var(--border); min-width: 150px; }
+.filter.set .filter-select { border-color: var(--accent); background-color: rgba(232, 101, 10, 0.1); font-weight: 600; }
+.filter-clear {
+  background: none; border: none; padding: 6px 4px; cursor: pointer;
+  color: var(--accent); font: inherit; font-size: 14px; font-weight: 600;
+}
+.filter-clear:hover { text-decoration: underline; }
+@media (max-width: 600px) {
+  /* two per row on phones */
+  .filter-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .filter-select { width: 100%; min-width: 0; }
+  .filter-clear { grid-column: 1 / -1; justify-self: start; }
+}
+
+/* Filters button: to the right of the search box when there are results */
+.search-row:has(.filters-toggle) { display: flex; align-items: stretch; gap: 10px; }
+.search-row:has(.filters-toggle) .search-box { flex: 1; min-width: 0; }
+.filters-toggle {
+  position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 18px; border-radius: 999px; cursor: pointer;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  font: inherit; font-size: 15px; font-weight: 600; -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.filters-toggle .icon { color: var(--accent); }
+.filters-toggle.open { border-color: var(--accent); background: rgba(232, 101, 10, 0.12); }
+@media (hover: hover) { .filters-toggle:hover { border-color: var(--accent); } }
+.filters-count {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700;
+}
+@media (max-width: 600px) {
+  /* phones: just the icon, square like the die, the count in the corner */
+  .filters-toggle { width: 48px; padding: 0; justify-content: center; }
+  .filters-toggle-label { display: none; }
+  .filters-count { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; font-size: 11px; padding: 0 5px; }
+  .search-row:has(.filters-toggle) .suggestions { right: -58px; } /* the list spans box + button */
+}

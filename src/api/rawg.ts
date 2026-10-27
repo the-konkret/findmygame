@@ -79,6 +79,85 @@ export interface SearchResults {
   queries: { params: Record<string, string>; page: number; done: boolean }[];
   /** internal: drop titles that only share a stray word (decided on the first page, kept for the rest) */
   strict: boolean;
+  /** the order games are shown in */
+  sort: SearchSort;
+}
+
+// ---- Filters and sorting for the search results ----
+
+/** RAWG's ids for platform families ("parent platforms"). */
+export const PLATFORM_FILTERS: { key: string; label: string; rawgId: string }[] = [
+  { key: 'pc', label: 'PC', rawgId: '1' },
+  { key: 'playstation', label: 'PlayStation', rawgId: '2' },
+  { key: 'xbox', label: 'Xbox', rawgId: '3' },
+  { key: 'nintendo', label: 'Nintendo', rawgId: '7' },
+  { key: 'mac', label: 'Mac', rawgId: '5' },
+  { key: 'linux', label: 'Linux', rawgId: '6' },
+  { key: 'ios', label: 'iPhone / iPad', rawgId: '4' },
+  { key: 'android', label: 'Android', rawgId: '8' },
+];
+
+/** RAWG's genres (their slugs), in the order RAWG lists them. */
+export const GENRE_FILTERS: { key: string; label: string }[] = [
+  { key: 'action', label: 'Action' },
+  { key: 'adventure', label: 'Adventure' },
+  { key: 'role-playing-games-rpg', label: 'RPG' },
+  { key: 'shooter', label: 'Shooter' },
+  { key: 'strategy', label: 'Strategy' },
+  { key: 'simulation', label: 'Simulation' },
+  { key: 'puzzle', label: 'Puzzle' },
+  { key: 'platformer', label: 'Platformer' },
+  { key: 'racing', label: 'Racing' },
+  { key: 'sports', label: 'Sports' },
+  { key: 'fighting', label: 'Fighting' },
+  { key: 'arcade', label: 'Arcade' },
+  { key: 'casual', label: 'Casual' },
+  { key: 'indie', label: 'Indie' },
+  { key: 'massively-multiplayer', label: 'MMO' },
+  { key: 'family', label: 'Family' },
+  { key: 'board-games', label: 'Board games' },
+  { key: 'card', label: 'Card' },
+  { key: 'educational', label: 'Educational' },
+];
+
+export type SearchSort = 'best' | 'newest' | 'rating';
+export const SORT_OPTIONS: { key: SearchSort; label: string }[] = [
+  { key: 'best', label: 'Best match' },
+  { key: 'newest', label: 'Newest first' },
+  { key: 'rating', label: 'Top rated' },
+];
+
+export interface SearchFilters {
+  /** a PLATFORM_FILTERS key */
+  platform?: string;
+  /** a GENRE_FILTERS key */
+  genre?: string;
+  /** e.g. "2015" */
+  year?: string;
+  sort?: SearchSort;
+}
+
+/** The filters as RAWG search settings (asked for on the server, so they cover all of RAWG). */
+function filterParams(f: SearchFilters): Record<string, string> {
+  const out: Record<string, string> = {};
+  const platform = PLATFORM_FILTERS.find((p) => p.key === f.platform);
+  if (platform) out.parent_platforms = platform.rawgId;
+  if (f.genre && GENRE_FILTERS.some((g) => g.key === f.genre)) out.genres = f.genre;
+  if (f.year && /^\d{4}$/.test(f.year)) out.dates = `${f.year}-01-01,${f.year}-12-31`;
+  return out;
+}
+
+/** Puts games in the chosen order ("best" keeps the match ranking). */
+function sortGames(games: GameSummary[], sort: SearchSort): GameSummary[] {
+  if (sort === 'newest') {
+    // newest release first; games without a date go last
+    return [...games].sort((a, b) => (b.released ?? '').localeCompare(a.released ?? ''));
+  }
+  if (sort === 'rating') {
+    // players' rating, weighed by how many rated it (so one 5-star vote doesn't top the list)
+    return [...games].sort((a, b) => weightedRating(b) - weightedRating(a));
+  }
+  return games;
 }
 
 const PAGE_SIZE = '40';
@@ -95,12 +174,13 @@ async function askPage(params: Record<string, string>, page: number, signal?: Ab
   });
 }
 
-export async function startSearch(term: string, signal?: AbortSignal): Promise<SearchResults> {
+export async function startSearch(term: string, signal?: AbortSignal, filters: SearchFilters = {}): Promise<SearchResults> {
   const finished = await finishWord(term, signal);
+  const only = filterParams(filters);
   const queries: SearchResults['queries'] = [
-    { params: { search: term, ordering: '-added' }, page: 1, done: false },
-    { params: { search: term }, page: 1, done: false },
-    ...finished.map((t) => ({ params: { search: t, ordering: '-added' }, page: 1, done: false })),
+    { params: { search: term, ordering: '-added', ...only }, page: 1, done: false },
+    { params: { search: term, ...only }, page: 1, done: false },
+    ...finished.map((t) => ({ params: { search: t, ordering: '-added', ...only }, page: 1, done: false })),
   ];
   const pages = await Promise.all(queries.map((q) => askPage(q.params, 1, signal)));
   pages.forEach((p, i) => (queries[i].done = !p.next));
@@ -108,7 +188,8 @@ export async function startSearch(term: string, signal?: AbortSignal): Promise<S
   const seen = new Set<number>();
   const merged = pages.flatMap((p) => p.results).filter((g) => !seen.has(g.id) && seen.add(g.id));
   const { games, strict } = rankSearch(merged, term);
-  return { term, games, hasMore: queries.some((q) => !q.done), queries, strict };
+  const sort = filters.sort ?? 'best';
+  return { term, games: sortGames(games, sort), hasMore: queries.some((q) => !q.done), queries, strict, sort };
 }
 
 /** The next page of each RAWG search, ranked and added after what's already there (so nothing shown moves). */
@@ -125,7 +206,8 @@ export async function moreResults(current: SearchResults, signal?: AbortSignal):
     });
     const seen = new Set(result.games.map((g) => g.id));
     const fresh = pages.flatMap((p) => p.results).filter((g) => !seen.has(g.id) && seen.add(g.id));
-    const { games } = rankSearch(fresh, result.term, result.strict);
+    // the new batch is ranked / sorted on its own and added after what's shown, so nothing on screen moves
+    const games = sortGames(rankSearch(fresh, result.term, result.strict).games, result.sort);
     result = { ...result, games: [...result.games, ...games], queries, hasMore: queries.some((q) => !q.done) };
     if (games.length > 0) break;
   }

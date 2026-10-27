@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { moreResults, startSearch, type GameSummary, type SearchResults } from '../api/rawg';
+import { moreResults, startSearch, type GameSummary, type SearchFilters, type SearchResults, type SearchSort } from '../api/rawg';
+import SearchFilterBar from '../components/SearchFilterBar';
 import { describeSearch, MAX_DESCRIPTION, type AiMatch } from '../api/describe';
 import GameCard from '../components/GameCard';
 import SearchBox from '../components/SearchBox';
 import SurpriseButton from '../components/SurpriseButton';
-import { CloseIcon } from '../components/Icons';
+import { CloseIcon, FilterIcon } from '../components/Icons';
 import { useFavouriteIds } from '../hooks/useFavouriteIds';
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
@@ -23,6 +24,30 @@ export default function SearchPage() {
   const query = (params.get('q') ?? '').trim();
   const aiQuery = (params.get('ai') ?? '').trim();
   const aiTab = params.get('tab') === 'ai';
+  //   &platform=switch&genre=…&year=2015&sort=newest  filters for the name search
+  const filters: SearchFilters = {
+    platform: params.get('platform') || undefined,
+    genre: params.get('genre') || undefined,
+    year: params.get('year') || undefined,
+    sort: (params.get('sort') as SearchSort | null) || undefined,
+  };
+  const filterKey = [filters.platform, filters.genre, filters.year, filters.sort].join('|');
+  const hasFilters = Boolean(filters.platform || filters.genre || filters.year);
+  // how many are in use (shown on the Filters button), counting a non-default sort too
+  const filterCount = [filters.platform, filters.genre, filters.year, filters.sort].filter(Boolean).length;
+  // The filter bar: hidden until the Filters button is pressed (open straight away if filters are in use)
+  const [filtersOpen, setFiltersOpen] = useState(filterCount > 0);
+
+  /** The address with some settings changed (empty ones removed), keeping everything else. */
+  function paramsWith(changes: Record<string, string | undefined>): Record<string, string> {
+    const next: Record<string, string> = {};
+    params.forEach((value, key) => (next[key] = value));
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next[key] = value;
+      else delete next[key];
+    }
+    return next;
+  }
   const [mode, setMode] = useState<Mode>(aiQuery && (aiTab || !query) ? 'describe' : 'name');
   const [input, setInput] = useState(query);
   const [description, setDescription] = useState(aiQuery);
@@ -95,7 +120,7 @@ export default function SearchPage() {
     const controller = new AbortController();
     setStatus('loading');
     setError('');
-    startSearch(query, controller.signal)
+    startSearch(query, controller.signal, filters)
       .then((r) => {
         setSearch(r);
         setStatus('done');
@@ -106,7 +131,7 @@ export default function SearchPage() {
         setStatus('error');
       });
     return () => controller.abort();
-  }, [query]);
+  }, [query, filterKey]);
 
   // Load the AI's guesses for the submitted description.
   useEffect(() => {
@@ -158,8 +183,8 @@ export default function SearchPage() {
 
   function submit(term: string) {
     if (term === query) return;
-    // keep the last description (for the other tab); this tab is now the one in use
-    setParams({ ...(term ? { q: term } : {}), ...(aiQuery ? { ai: aiQuery } : {}) });
+    // keep the last description (for the other tab) and the filters; this tab is now the one in use
+    setParams(paramsWith({ q: term || undefined, tab: undefined }));
     inputRef.current?.blur();
   }
 
@@ -167,7 +192,7 @@ export default function SearchPage() {
     e?.preventDefault();
     const text = description.trim().replace(/\s+/g, ' ');
     if (text.length < 5 || (text === aiQuery && aiTab)) return;
-    setParams({ ...(query ? { q: query } : {}), ai: text, tab: 'ai' });
+    setParams(paramsWith({ ai: text, tab: 'ai' }));
     describeRef.current?.blur();
   }
 
@@ -243,6 +268,22 @@ export default function SearchPage() {
               <SearchBox value={input} onChange={setInput} onSubmit={submit} inputRef={inputRef} autoFocus={!hasResults && !switchedRef.current} />
               {/* Only on the fresh home page, next to the big search box. */}
               {!hasResults && <SurpriseButton />}
+              {/* With results: show / hide the filters */}
+              {hasResults && (
+                <button
+                  type="button"
+                  className={`filters-toggle ${filtersOpen ? 'open' : ''}`}
+                  onClick={() => setFiltersOpen((o) => !o)}
+                  aria-expanded={filtersOpen}
+                  aria-controls="search-filters"
+                  aria-label={filterCount ? `Filters (${filterCount} in use)` : 'Filters'}
+                  data-testid="filters-toggle"
+                >
+                  <FilterIcon />
+                  <span className="filters-toggle-label">Filters</span>
+                  {filterCount > 0 && <span className="filters-count" aria-hidden>{filterCount}</span>}
+                </button>
+              )}
             </div>
             {!hasResults && <p className="hero-hint">Start typing to see suggestions, or press Enter to see all results.</p>}
           </>
@@ -296,6 +337,14 @@ export default function SearchPage() {
         </div>
       </div>
 
+      {/* Filters and sorting for a name search */}
+      {mode === 'name' && query && filtersOpen && (
+        <SearchFilterBar
+          filters={filters}
+          onChange={(f) => setParams(paramsWith({ platform: f.platform, genre: f.genre, year: f.year, sort: f.sort }))}
+        />
+      )}
+
       {/* Only the results of the tab you're on */}
       {(mode === 'name' ? status : aiStatus) === 'loading' && (
         <>
@@ -316,7 +365,21 @@ export default function SearchPage() {
       {mode === 'name' && status === 'error' && <p className="status error" data-testid="search-error">{error}</p>}
       {mode === 'describe' && aiStatus === 'error' && <p className="status error" data-testid="search-error">{aiError}</p>}
       {mode === 'name' && status === 'done' && query && results.length === 0 && (
-        <p className="status" data-testid="search-empty">No games found for “{query}”.</p>
+        <p className="status" data-testid="search-empty">
+          No games found for “{query}”{hasFilters ? ' with these filters' : ''}.
+          {hasFilters && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setParams(paramsWith({ platform: undefined, genre: undefined, year: undefined }))}
+              >
+                Clear filters
+              </button>
+            </>
+          )}
+        </p>
       )}
       {mode === 'describe' && aiStatus === 'done' && aiQuery && matches.length === 0 && similar.length === 0 && (
         <p className="status" data-testid="describe-empty">
