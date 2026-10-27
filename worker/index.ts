@@ -8,6 +8,8 @@
 // - POST /api/describe is the "Describe a game" AI search (worker/describe.ts, Cloudflare Workers AI).
 // - Every 3 hours Cloudflare runs `scheduled` below: the price check for everyone's price alerts
 //   (worker/priceCheck.ts). POST /api/alerts/run with the ALERT_RUN_KEY secret runs it on demand.
+// - /game/123 (a game page): the page gets that game's link-preview tags, so a shared link shows its
+//   picture, name and score in Messenger, WhatsApp, Discord… (worker/preview.ts).
 // - Everything else (the website itself) is served straight from the built files in dist/,
 //   configured in wrangler.jsonc, without running this code.
 //
@@ -16,6 +18,7 @@
 
 import { handleDescribe, type AiBinding } from './describe';
 import { handleComplete } from './complete';
+import { gamePageId, gamePageWithPreview } from './preview';
 import { handleGameNews, handleNews, type TopGame } from './news';
 import { runPriceCheck, type PriceCheckEnv } from './priceCheck';
 
@@ -60,6 +63,10 @@ export default {
     }
     if (url.pathname.startsWith('/api/')) {
       return json({ error: 'Not found' }, 404);
+    }
+    const gameId = request.method === 'GET' ? gamePageId(url.pathname) : null;
+    if (gameId) {
+      return gamePageWithPreview(request, gameId, env, ctx);
     }
     return env.ASSETS.fetch(request);
   },

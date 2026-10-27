@@ -9,8 +9,9 @@
     // Unknown paths like /game/3328 get index.html, and React takes it from there.
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
-    // Only /api/... requests run the Worker code; everything else is served as plain files.
-    "run_worker_first": ["/api/*"]
+    // /api/... and game pages (for their link previews) run the Worker code; everything else is
+    // served as plain files.
+    "run_worker_first": ["/api/*", "/game/*"]
   },
   // Cloudflare's AI models, for the "Describe a game" search (free daily allowance on the free plan).
   "ai": { "binding": "AI" },

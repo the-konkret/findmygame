@@ -50,6 +50,15 @@ export default function GamePage() {
     return () => controller.abort();
   }, [id]);
 
+  // The browser tab shows the game's name (matching the link preview), back to the site name on leaving.
+  useEffect(() => {
+    if (!game) return;
+    document.title = `${game.name} – FindMyGame`;
+    return () => {
+      document.title = 'FindMyGame';
+    };
+  }, [game]);
+
   if (error) {
     return (
       <section className="game-page">
