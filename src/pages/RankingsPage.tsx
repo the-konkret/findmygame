@@ -156,7 +156,7 @@ function DealsList() {
           meta={
             <>
               <span className="rank-score">{d.price === 0 ? 'Free' : usd.format(d.price)}</span>
-              {d.normalPrice > d.price && <s className="deal-retail"> {usd.format(d.normalPrice)}</s>} at {d.storeName}
+              {d.normalPrice > d.price && <>{' '}<s className="deal-retail">{usd.format(d.normalPrice)}</s></>} at {d.storeName}
             </>
           }
         />
